@@ -1,7 +1,52 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	core_config "github.com/pom1dorki/engmark/internal/core/config"
+	core_logger "github.com/pom1dorki/engmark/internal/core/logger"
+	core_http_middleware "github.com/pom1dorki/engmark/internal/core/transport/http/middleware"
+	core_http_server "github.com/pom1dorki/engmark/internal/core/transport/http/server"
+	health_transport_http "github.com/pom1dorki/engmark/internal/features/health/transport/http"
+	"go.uber.org/zap"
+)
 
 func main() {
-	fmt.Println("ok")
+	cfg := core_config.NewConfigMust()
+	time.Local = cfg.TimeZone
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	logger, err := core_logger.NewLogger(core_logger.NewConfigMust())
+	if err != nil {
+		fmt.Println("failed to init application logger:", err)
+		os.Exit(1)
+	}
+	defer logger.Close()
+
+	logger.Debug("application time zone", zap.Any("zone", time.Local))
+
+	httpConfig := core_http_server.NewConfigMust()
+	httpServer := core_http_server.NewHTTPServer(
+		httpConfig,
+		logger,
+		core_http_middleware.CORS(httpConfig.AllowedOrigins),
+		core_http_middleware.RequestID(),
+		core_http_middleware.Logger(logger),
+		core_http_middleware.Trace(),
+		core_http_middleware.Panic(),
+		core_http_middleware.LimitBody(32<<10),
+	)
+
+	httpServer.RegisterRoutes(health_transport_http.Routes()...)
+
+	if err := httpServer.Run(ctx); err != nil {
+		logger.Error("HTTP server run error", zap.Error(err))
+	}
 }
