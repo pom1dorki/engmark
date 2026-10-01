@@ -3,13 +3,16 @@ export
 
 export PROJECT_ROOT := $(CURDIR)
 
-.PHONY: build run env-up env-down env-port-forward env-port-close migrate-create migrate-up migrate-down migrate-action
+.PHONY: build run test env-up env-down env-port-forward env-port-close migrate-create migrate-up migrate-down migrate-action
 
 build:
 	go build -C backend -o ../bin/engmark ./cmd/engmark
 
 run: build
 	./bin/engmark
+
+test:
+	go test -C backend -timeout 4m ./...
 
 env-up:
 	docker compose up -d --wait engmark-postgres
