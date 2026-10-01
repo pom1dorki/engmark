@@ -13,6 +13,7 @@ import (
 	core_pgx_pool "github.com/pom1dorki/engmark/internal/core/repository/postgres/pool/pgx"
 	core_http_middleware "github.com/pom1dorki/engmark/internal/core/transport/http/middleware"
 	core_http_server "github.com/pom1dorki/engmark/internal/core/transport/http/server"
+	catalog_admin "github.com/pom1dorki/engmark/internal/features/catalog/admin"
 	catalog_postgres_repository "github.com/pom1dorki/engmark/internal/features/catalog/repository/postgres"
 	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
 	catalog_transport_http "github.com/pom1dorki/engmark/internal/features/catalog/transport/http"
@@ -36,6 +37,12 @@ func main() {
 	defer logger.Close()
 
 	logger.Debug("application time zone", zap.Any("zone", time.Local))
+
+	adminConfig, err := catalog_admin.NewConfig()
+	if err != nil {
+		logger.Error("failed to init admin config", zap.Error(err))
+		os.Exit(1)
+	}
 
 	pool, err := core_pgx_pool.NewPool(ctx, core_pgx_pool.NewConfigMust())
 	if err != nil {
@@ -61,9 +68,8 @@ func main() {
 	httpServer.RegisterRoutes(healthHandler.Routes()...)
 
 	catalogHandler := catalog_transport_http.New(
-		catalog_service.New(
-			catalog_postgres_repository.New(pool),
-		),
+		catalog_service.New(catalog_postgres_repository.New(pool)),
+		adminConfig.Token,
 	)
 	v1 := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
 	v1.RegisterRoutes(catalogHandler.Routes()...)

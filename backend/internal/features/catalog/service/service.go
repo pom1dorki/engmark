@@ -21,6 +21,9 @@ type Repository interface {
 	ListDecks(ctx context.Context) ([]catalog_domain.Deck, error)
 	GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error)
 	GetDeckBySlug(ctx context.Context, slug string) (catalog_domain.Deck, error)
+	CreateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
+	UpdateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
+	DeleteCard(ctx context.Context, id int64) error
 }
 
 type CardList struct {
