@@ -3,7 +3,7 @@ export
 
 export PROJECT_ROOT := $(CURDIR)
 
-.PHONY: build run test env-up env-down env-port-forward env-port-close migrate-create migrate-up migrate-down migrate-action
+.PHONY: build run test env-up env-down env-port-forward env-port-close migrate-create migrate-up migrate-down migrate-action swagger-gen
 
 build:
 	go build -C backend -o ../bin/engmark ./cmd/engmark
@@ -42,3 +42,11 @@ migrate-action:
 		-path /migrations \
 		-database "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@engmark-postgres:5432/$(POSTGRES_DB)?sslmode=disable" \
 		"$(action)"
+
+swagger-gen:
+	docker compose run --rm engmark-swagger \
+		init \
+		-g main.go \
+		-d ./cmd/engmark,./internal \
+		-o docs \
+		--parseInternal

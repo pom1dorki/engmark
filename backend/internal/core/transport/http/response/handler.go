@@ -46,7 +46,7 @@ func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 
 	logFunc(msg, zap.Error(err), zap.String("request_id", h.requestID))
 	h.JSONResponse(ErrorEnvelope{
-		Error:     errorBody{Code: code, Message: clientMsg},
+		Error:     ErrorBody{Code: code, Message: clientMsg},
 		RequestID: h.requestID,
 	}, status)
 }

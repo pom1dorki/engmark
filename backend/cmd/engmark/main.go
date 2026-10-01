@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	_ "github.com/pom1dorki/engmark/docs"
 	core_config "github.com/pom1dorki/engmark/internal/core/config"
 	core_logger "github.com/pom1dorki/engmark/internal/core/logger"
 	core_pgx_pool "github.com/pom1dorki/engmark/internal/core/repository/postgres/pool/pgx"
@@ -19,9 +21,19 @@ import (
 	catalog_transport_http "github.com/pom1dorki/engmark/internal/features/catalog/transport/http"
 	health_service "github.com/pom1dorki/engmark/internal/features/health/service"
 	health_transport_http "github.com/pom1dorki/engmark/internal/features/health/transport/http"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
 
+// @title Engmark API
+// @version 0.1
+// @description Card catalog. Admin writes require Authorization: Bearer <ADMIN_TOKEN>.
+// @host localhost:5050
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Value is "Bearer <ADMIN_TOKEN>". Do not put a real token here.
 func main() {
 	cfg := core_config.NewConfigMust()
 	time.Local = cfg.TimeZone
@@ -75,7 +87,20 @@ func main() {
 	v1.RegisterRoutes(catalogHandler.Routes()...)
 	httpServer.RegisterAPIRouters(v1)
 
+	httpServer.RegisterRoutes(swaggerRoute())
+
 	if err := httpServer.Run(ctx); err != nil {
 		logger.Error("HTTP server run error", zap.Error(err))
+	}
+}
+
+func swaggerRoute() core_http_server.Route {
+	return core_http_server.Route{
+		Method: http.MethodGet,
+		Path:   "/swagger/",
+		Handler: httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.DefaultModelsExpandDepth(-1),
+		),
 	}
 }
