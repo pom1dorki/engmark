@@ -29,3 +29,16 @@ services:
     depends_on:
       engmark-postgres:
         condition: service_healthy
+
+  engmark-swagger:
+    build:
+      context: ${PROJECT_ROOT}
+      dockerfile_inline: |
+        FROM golang:1.27.1-alpine
+        RUN apk add --no-cache git
+        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
+        WORKDIR /code
+        ENTRYPOINT ["swag"]
+    working_dir: /code/backend
+    volumes:
+      - ${PROJECT_ROOT}:/code

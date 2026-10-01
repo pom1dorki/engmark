@@ -10,7 +10,7 @@ import (
 	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
 )
 
-type cardDTO struct {
+type CardDTO struct {
 	ID               int64     `json:"id"`
 	DeckID           int64     `json:"deckId"`
 	Version          int       `json:"version"`
@@ -31,22 +31,22 @@ type cardDTO struct {
 	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
-type deckDTO struct {
+type DeckDTO struct {
 	ID        int64     `json:"id"`
 	Slug      string    `json:"slug"`
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-type cardListDTO struct {
-	Items  []cardDTO `json:"items"`
+type CardListDTO struct {
+	Items  []CardDTO `json:"items"`
 	Total  int       `json:"total"`
 	Limit  int       `json:"limit"`
 	Offset int       `json:"offset"`
 }
 
-func cardFromDomain(c catalog_domain.Card) cardDTO {
-	return cardDTO{
+func cardFromDomain(c catalog_domain.Card) CardDTO {
+	return CardDTO{
 		ID:               c.ID,
 		DeckID:           c.DeckID,
 		Version:          c.Version,
@@ -68,16 +68,16 @@ func cardFromDomain(c catalog_domain.Card) cardDTO {
 	}
 }
 
-func cardsFromDomain(cards []catalog_domain.Card) []cardDTO {
-	out := make([]cardDTO, 0, len(cards))
+func cardsFromDomain(cards []catalog_domain.Card) []CardDTO {
+	out := make([]CardDTO, 0, len(cards))
 	for _, c := range cards {
 		out = append(out, cardFromDomain(c))
 	}
 	return out
 }
 
-func cardListFromService(list catalog_service.CardList) cardListDTO {
-	return cardListDTO{
+func cardListFromService(list catalog_service.CardList) CardListDTO {
+	return CardListDTO{
 		Items:  cardsFromDomain(list.Items),
 		Total:  list.Total,
 		Limit:  list.Limit,
@@ -85,8 +85,8 @@ func cardListFromService(list catalog_service.CardList) cardListDTO {
 	}
 }
 
-func deckFromDomain(d catalog_domain.Deck) deckDTO {
-	return deckDTO{
+func deckFromDomain(d catalog_domain.Deck) DeckDTO {
+	return DeckDTO{
 		ID:        d.ID,
 		Slug:      d.Slug,
 		Title:     d.Title,
@@ -113,7 +113,7 @@ func (s *setString) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type createCardRequest struct {
+type CreateCardRequest struct {
 	DeckID           *int64 `json:"deckId"`
 	Word             string `json:"word"`
 	Translation      string `json:"translation"`
@@ -130,7 +130,7 @@ type createCardRequest struct {
 	ExampleRu        string `json:"exampleRu"`
 }
 
-func (in createCardRequest) card() catalog_domain.Card {
+func (in CreateCardRequest) card() catalog_domain.Card {
 	return catalog_domain.Card{
 		Word:             in.Word,
 		Translation:      in.Translation,
@@ -148,24 +148,24 @@ func (in createCardRequest) card() catalog_domain.Card {
 	}
 }
 
-type patchCardRequest struct {
+type PatchCardRequest struct {
 	Version          *int      `json:"version"`
-	Word             setString `json:"word"`
-	Translation      setString `json:"translation"`
-	IPA              setString `json:"ipa"`
-	RusTrans         setString `json:"rusTrans"`
-	Stress           setString `json:"stress"`
-	Pos              setString `json:"pos"`
-	PosRu            setString `json:"posRu"`
-	ExtraLabel       setString `json:"extraLabel"`
-	Extra            setString `json:"extra"`
-	Style            setString `json:"style"`
-	Example          setString `json:"example"`
-	ExampleHighlight setString `json:"exampleHighlight"`
-	ExampleRu        setString `json:"exampleRu"`
+	Word             setString `json:"word" swaggertype:"string"`
+	Translation      setString `json:"translation" swaggertype:"string"`
+	IPA              setString `json:"ipa" swaggertype:"string"`
+	RusTrans         setString `json:"rusTrans" swaggertype:"string"`
+	Stress           setString `json:"stress" swaggertype:"string"`
+	Pos              setString `json:"pos" swaggertype:"string"`
+	PosRu            setString `json:"posRu" swaggertype:"string"`
+	ExtraLabel       setString `json:"extraLabel" swaggertype:"string"`
+	Extra            setString `json:"extra" swaggertype:"string"`
+	Style            setString `json:"style" swaggertype:"string"`
+	Example          setString `json:"example" swaggertype:"string"`
+	ExampleHighlight setString `json:"exampleHighlight" swaggertype:"string"`
+	ExampleRu        setString `json:"exampleRu" swaggertype:"string"`
 }
 
-func (in patchCardRequest) patch() (catalog_domain.CardPatch, error) {
+func (in PatchCardRequest) patch() (catalog_domain.CardPatch, error) {
 	if in.Version == nil {
 		return catalog_domain.CardPatch{}, fmt.Errorf("version is required: %w", core_errors.ErrInvalidArgument)
 	}

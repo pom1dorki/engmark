@@ -15,13 +15,13 @@ const (
 	CodeInternal        = "internal"
 )
 
-type errorBody struct {
+type ErrorBody struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
 type ErrorEnvelope struct {
-	Error     errorBody `json:"error"`
+	Error     ErrorBody `json:"error"`
 	RequestID string    `json:"request_id"`
 }
 

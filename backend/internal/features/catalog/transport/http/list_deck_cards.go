@@ -6,6 +6,16 @@ import (
 	core_http_request "github.com/pom1dorki/engmark/internal/core/transport/http/request"
 )
 
+// ListDeckCards godoc
+// @Summary List cards in a deck
+// @Tags catalog
+// @Produce json
+// @Param id path int true "deck id"
+// @Param limit query int false "max 100"
+// @Param offset query int false "offset"
+// @Success 200 {object} CardListDTO
+// @Failure 400 {object} core_http_response.ErrorEnvelope
+// @Router /api/v1/decks/{id}/cards [get]
 func (h *Handler) ListDeckCards(w http.ResponseWriter, r *http.Request) {
 	resp := h.respond(w, r)
 
