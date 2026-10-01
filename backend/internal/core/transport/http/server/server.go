@@ -81,3 +81,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 
 	return nil
 }
+
+func (s *HTTPServer) Handler() http.Handler {
+	return core_http_middleware.ChainMiddleware(s.mux, s.middleware...)
+}
