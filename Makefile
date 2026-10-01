@@ -50,3 +50,6 @@ swagger-gen:
 		-d ./cmd/engmark,./internal \
 		-o docs \
 		--parseInternal
+
+web:
+	npm run dev --prefix frontend
