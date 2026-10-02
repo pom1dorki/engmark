@@ -8,26 +8,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link id="fonts-default" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" />
     <link id="fonts-alt" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" media="not all" />
-    <title>Engmark — английские слова</title>
+    <title>Engmark</title>
     <script>
-      window.__EW__ = {
-        themes: ["dark", "light", "sepia", "alt-dark"],
-        colors: {
+      (function () {
+        var themes = ["dark", "light", "sepia", "alt-dark"];
+        var colors = {
           dark: "#07070a",
           light: "#f4f3ef",
           sepia: "#f0dfbd",
           "alt-dark": "#050507"
-        }
-      };
-    </script>
-    <script>
-      (function () {
-        var cfg = window.__EW__;
+        };
         var theme = "dark";
         try {
           theme = localStorage.getItem("ew-theme") || "dark";
         } catch (err) {}
-        if (cfg.themes.indexOf(theme) === -1) theme = "dark";
+        if (themes.indexOf(theme) === -1) theme = "dark";
 
         var isAlt = theme.indexOf("alt-") === 0;
         var isLight = theme === "light" || theme === "sepia";
@@ -40,7 +35,7 @@
         if (altFonts) altFonts.media = isAlt ? "all" : "not all";
 
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", cfg.colors[theme]);
+        if (meta) meta.setAttribute("content", colors[theme]);
       })();
     </script>
   </head>

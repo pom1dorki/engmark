@@ -3,6 +3,8 @@ package core_pgx_pool
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,15 +16,36 @@ type Pool struct {
 	opTimeout time.Duration
 }
 
+func ConnectionURL(config Config) (string, error) {
+	mode := config.SSLMode
+	if mode == "" {
+		mode = "disable"
+	}
+	switch mode {
+	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+	default:
+		return "", fmt.Errorf("postgres sslmode %q is not supported", mode)
+	}
+
+	query := url.Values{"sslmode": {mode}}
+	if config.SSLRootCert != "" {
+		query.Set("sslrootcert", config.SSLRootCert)
+	}
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(config.User, config.Password),
+		Host:     net.JoinHostPort(config.Host, config.Port),
+		Path:     "/" + config.Database,
+		RawQuery: query.Encode(),
+	}
+	return u.String(), nil
+}
+
 func NewPool(ctx context.Context, config Config) (*Pool, error) {
-	connectionString := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		config.User,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.Database,
-	)
+	connectionString, err := ConnectionURL(config)
+	if err != nil {
+		return nil, err
+	}
 
 	pgxconfig, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {

@@ -23,15 +23,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestSeed(t *testing.T) {
+func TestMigrationLeavesCatalogEmpty(t *testing.T) {
 	var cards, decks int
 	if err := testPool.QueryRow(context.Background(), `SELECT count(*) FROM cards`).Scan(&cards); err != nil {
 		t.Fatal(err)
 	}
-	if err := testPool.QueryRow(context.Background(), `SELECT count(*) FROM decks WHERE slug = 'default'`).Scan(&decks); err != nil {
+	if err := testPool.QueryRow(context.Background(), `SELECT count(*) FROM decks WHERE slug = 'default' AND kind = 'admin'`).Scan(&decks); err != nil {
 		t.Fatal(err)
 	}
-	if cards != 5 || decks != 1 {
-		t.Fatalf("seed cards=%d decks=%d, want 5 and 1", cards, decks)
+	if cards != 0 || decks != 1 {
+		t.Fatalf("cards=%d admin decks=%d, want 0 and 1", cards, decks)
 	}
 }

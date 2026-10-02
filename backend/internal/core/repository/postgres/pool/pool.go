@@ -12,6 +12,7 @@ type Pool interface {
 	Ping(ctx context.Context) error
 	Close()
 	OpTimeout() time.Duration
+	WithinTx(ctx context.Context, fn func(ctx context.Context, tx Pool) error) error
 }
 
 type Rows interface {

@@ -32,16 +32,14 @@ func (r *Repository) UpdateCard(ctx context.Context, card catalog_domain.Card) (
 			word = $3,
 			translation = $4,
 			ipa = $5,
-			rus_trans = $6,
-			stress = $7,
+			pronunciation = $6,
+			stress_note = $7,
 			pos = $8,
-			pos_ru = $9,
-			extra_label = $10,
-			extra = $11,
-			style = $12,
-			example = $13,
-			example_highlight = $14,
-			example_ru = $15
+			grammar = $9,
+			usage = $10,
+			example = $11,
+			example_highlight = $12,
+			example_translation = $13
 		WHERE id = $1 AND version = $2
 		RETURNING ` + cardColumns
 
@@ -51,16 +49,14 @@ func (r *Repository) UpdateCard(ctx context.Context, card catalog_domain.Card) (
 		card.Word,
 		card.Translation,
 		card.IPA,
-		card.RusTrans,
-		card.Stress,
+		card.Pronunciation,
+		card.StressNote,
 		card.Pos,
-		card.PosRu,
-		card.ExtraLabel,
-		card.Extra,
-		card.Style,
+		card.Grammar,
+		card.Usage,
 		card.Example,
 		card.ExampleHighlight,
-		card.ExampleRu,
+		card.ExampleTranslation,
 	))
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrNoRows) {

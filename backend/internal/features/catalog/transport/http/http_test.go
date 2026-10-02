@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -125,46 +126,61 @@ func mustList(t *testing.T) cardList {
 	return list
 }
 
-func persistID(t *testing.T) int64 {
-	t.Helper()
-	for _, item := range mustList(t).Items {
-		if item.Word == "persist" {
-			return item.ID
-		}
-	}
-	t.Fatal("persist not in seed")
-	return 0
-}
-
-func TestListSeed(t *testing.T) {
+func TestListEmpty(t *testing.T) {
 	list := mustList(t)
-	if list.Total != 5 || list.Limit != 100 || list.Offset != 0 {
+	if list.Total != 0 || len(list.Items) != 0 || list.Limit != 100 || list.Offset != 0 {
 		t.Fatalf("list = %+v", list)
 	}
-	if persistID(t) == 0 {
-		t.Fatal("persist missing")
-	}
 }
 
-func TestGetSeed(t *testing.T) {
-	id := persistID(t)
-	res, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", id), "", nil)
+func TestGetCard(t *testing.T) {
+	body := map[string]string{
+		"word":               "persist",
+		"translation":        "упорствовать, продолжать (несмотря на трудности)",
+		"ipa":                "/pərˈsɪst/",
+		"pronunciation":      "[пэрси́ст]",
+		"stressNote":         "ударение на 2-м слоге",
+		"pos":                "verb",
+		"grammar":            "Правильный глагол: persist — persisted — persisted.",
+		"usage":              "Нейтральный, чуть формальный.",
+		"example":            "If you persist with daily practice, the words will stick.",
+		"exampleHighlight":   "persist",
+		"exampleTranslation": "Если будешь упорно заниматься каждый день, слова закрепятся.",
+	}
+	createdRes, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, body)
+	if createdRes.StatusCode != http.StatusCreated {
+		t.Fatalf("create %d: %s", createdRes.StatusCode, raw)
+	}
+	var created cardBody
+	if err := json.Unmarshal(raw, &created); err != nil {
+		t.Fatal(err)
+	}
+
+	res, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("get %d: %s", res.StatusCode, raw)
 	}
-	var card cardBody
+	var card map[string]any
 	if err := json.Unmarshal(raw, &card); err != nil {
 		t.Fatal(err)
 	}
-	if card.Word != "persist" {
-		t.Fatalf("word = %q", card.Word)
+	if card["word"] != "persist" || card["pos"] != "verb" || card["posRu"] != "глагол" {
+		t.Fatalf("card = %s", raw)
+	}
+	if card["pronunciation"] == "" || card["stressNote"] == "" || card["grammar"] == "" || card["usage"] == "" || card["exampleTranslation"] == "" {
+		t.Fatalf("card = %s", raw)
+	}
+	for _, key := range []string{"rusTrans", "extraLabel", "extra", "style"} {
+		if _, ok := card[key]; ok {
+			t.Fatalf("%s still present: %s", key, raw)
+		}
 	}
 }
 
 func TestCreateUnauthorizedDoesNotInsert(t *testing.T) {
 	before := mustList(t).Total
 	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", "", map[string]string{
-		"word": "nope", "translation": "нет", "pos": "noun", "posRu": "существительное",
+		"word": "nope", "translation": "нет", "pos": "noun",
 	})
 	if res.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("status %d: %s", res.StatusCode, raw)
@@ -184,7 +200,7 @@ func TestCreateUnauthorizedDoesNotInsert(t *testing.T) {
 func TestCreateThenConflict(t *testing.T) {
 	word := fmt.Sprintf("word-%d", time.Now().UnixNano())
 	body := map[string]string{
-		"word": word, "translation": "перевод", "pos": "noun", "posRu": "существительное",
+		"word": word, "translation": "перевод", "pos": "noun",
 	}
 	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, body)
 	if res.StatusCode != http.StatusCreated {
@@ -193,6 +209,13 @@ func TestCreateThenConflict(t *testing.T) {
 	var created cardBody
 	if err := json.Unmarshal(raw, &created); err != nil {
 		t.Fatal(err)
+	}
+	var createdFields map[string]any
+	if err := json.Unmarshal(raw, &createdFields); err != nil {
+		t.Fatal(err)
+	}
+	if createdFields["posRu"] != "существительное" {
+		t.Fatalf("posRu = %v", createdFields["posRu"])
 	}
 	got, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
 	if got.StatusCode != http.StatusOK {
@@ -211,7 +234,7 @@ func TestCreateThenConflict(t *testing.T) {
 func TestPatchVersion(t *testing.T) {
 	word := fmt.Sprintf("patch-%d", time.Now().UnixNano())
 	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
-		"word": word, "translation": "старый", "pos": "verb", "posRu": "глагол",
+		"word": word, "translation": "старый", "pos": "verb",
 	})
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("create %d: %s", res.StatusCode, raw)
@@ -247,7 +270,7 @@ func TestPatchVersion(t *testing.T) {
 func TestDeleteAndLimit(t *testing.T) {
 	word := fmt.Sprintf("del-%d", time.Now().UnixNano())
 	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
-		"word": word, "translation": "удалить", "pos": "adv", "posRu": "наречие",
+		"word": word, "translation": "удалить", "pos": "adv",
 	})
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("create %d: %s", res.StatusCode, raw)
@@ -264,8 +287,42 @@ func TestDeleteAndLimit(t *testing.T) {
 	if got.StatusCode != http.StatusNotFound {
 		t.Fatalf("get deleted %d: %s", got.StatusCode, raw)
 	}
-	lim, raw := do(t, http.MethodGet, "/api/v1/cards?limit=101", "", nil)
-	if lim.StatusCode != http.StatusBadRequest {
-		t.Fatalf("limit %d: %s", lim.StatusCode, raw)
+	for _, query := range []string{"limit=0", "limit=-1", "limit=101"} {
+		lim, raw := do(t, http.MethodGet, "/api/v1/cards?"+query, "", nil)
+		if lim.StatusCode != http.StatusBadRequest {
+			t.Fatalf("%s status %d: %s", query, lim.StatusCode, raw)
+		}
+		var env errEnv
+		if err := json.Unmarshal(raw, &env); err != nil {
+			t.Fatal(err)
+		}
+		if env.Error.Code != "invalid_argument" || env.Error.Message != "limit "+queryValue(query)+" must be from 1 to 100" {
+			t.Fatalf("%s envelope = %+v", query, env.Error)
+		}
+	}
+}
+
+func queryValue(query string) string {
+	_, value, _ := strings.Cut(query, "=")
+	return value
+}
+
+func TestCreateValidationMessage(t *testing.T) {
+	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
+		"word":             "persist",
+		"translation":      "перевод",
+		"pos":              "verb",
+		"example":          "If you persist, the words stick.",
+		"exampleHighlight": "missing",
+	})
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("create %d: %s", res.StatusCode, raw)
+	}
+	var env errEnv
+	if err := json.Unmarshal(raw, &env); err != nil {
+		t.Fatal(err)
+	}
+	if env.Error.Code != "invalid_argument" || env.Error.Message != "exampleHighlight is not in example" {
+		t.Fatalf("envelope = %+v", env.Error)
 	}
 }

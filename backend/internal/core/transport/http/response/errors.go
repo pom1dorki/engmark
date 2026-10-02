@@ -3,6 +3,7 @@ package core_http_response
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
 )
@@ -40,4 +41,21 @@ func mapError(err error) (status int, code string) {
 	default:
 		return http.StatusInternalServerError, CodeInternal
 	}
+}
+
+func clientErrorMessage(err error, fallback string, status int) string {
+	if status == http.StatusInternalServerError {
+		return "internal error"
+	}
+	if status != http.StatusBadRequest {
+		return fallback
+	}
+
+	text := strings.TrimSpace(err.Error())
+	text = strings.TrimSuffix(text, ": "+core_errors.ErrInvalidArgument.Error())
+	text = strings.TrimSpace(text)
+	if text == "" || text == core_errors.ErrInvalidArgument.Error() {
+		return fallback
+	}
+	return text
 }

@@ -19,7 +19,6 @@
     --glow-b: #ff1f8f;
     --glow-c: #00e5ff;
     --card: rgba(19, 20, 28, .78);
-    --card-strong: rgba(24, 25, 35, .92);
     --card-shine: rgba(255,255,255,.08);
     --card-border: rgba(255,255,255,.14);
     --ink: #f5f6fa;
@@ -54,7 +53,6 @@
     --glow-b: #ff4ca4;
     --glow-c: #1cc8e7;
     --card: rgba(255,255,255,.73);
-    --card-strong: rgba(255,255,255,.92);
     --card-shine: rgba(255,255,255,.9);
     --card-border: rgba(17,19,27,.09);
     --ink: #11131b;
@@ -89,7 +87,6 @@
     --glow-b: #d96a9f;
     --glow-c: #3aa6a0;
     --card: rgba(255,245,224,.75);
-    --card-strong: rgba(255,247,228,.95);
     --card-shine: rgba(255,255,255,.52);
     --card-border: rgba(57,39,22,.13);
     --ink: #2a2118;
@@ -124,7 +121,6 @@
     --glow-b: #ff3d8a;
     --glow-c: #41f3ff;
     --card: rgba(10, 10, 14, .88);
-    --card-strong: rgba(10, 10, 14, .96);
     --card-shine: rgba(255,255,255,.04);
     --card-border: #f5f1ea;
     --ink: #f5f1ea;
@@ -620,6 +616,8 @@
   .card__next:hover::after { transform: translateX(4px); }
   .card__next:active { transform: translateY(1px) scale(.985); }
 
+  .card__next--plain::after { display: none; }
+
   .card__hint {
     flex: 1;
     color: var(--soft);
@@ -635,6 +633,10 @@
   .card.is-empty .card__head,
   .card.is-empty .card__grid,
   .card.is-empty .card__actions { display: none; }
+
+  .card.is-empty .card__retry {
+    margin-top: 16px;
+  }
 
   .card__empty {
     margin: 8px 0 4px;
@@ -956,9 +958,3 @@
       transition-duration: .01ms !important;
     }
   }
-
-.card__next--plain::after { display: none; }
-
-.card.is-empty .card__retry {
-  margin-top: 16px;
-}

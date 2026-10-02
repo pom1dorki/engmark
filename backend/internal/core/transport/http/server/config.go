@@ -11,6 +11,8 @@ type Config struct {
 	Addr            string        `envconfig:"ADDR" required:"true"`
 	ShutDownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
 	AllowedOrigins  []string      `envconfig:"ALLOWED_ORIGINS" required:"true"`
+	StaticDir       string        `envconfig:"STATIC_DIR"`
+	Swagger         bool          `envconfig:"SWAGGER" default:"true"`
 }
 
 func NewConfig() (Config, error) {

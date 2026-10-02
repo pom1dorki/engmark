@@ -22,43 +22,54 @@ const (
 )
 
 type Card struct {
-	ID               int64
-	DeckID           int64
-	Version          int
-	Word             string
-	Translation      string
-	IPA              string
-	RusTrans         string
-	Stress           string
-	Pos              string
-	PosRu            string
-	ExtraLabel       string
-	Extra            string
-	Style            string
-	Example          string
-	ExampleHighlight string
-	ExampleRu        string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                 int64
+	DeckID             int64
+	Version            int
+	Word               string
+	Translation        string
+	IPA                string
+	Pronunciation      string
+	StressNote         string
+	Pos                string
+	Grammar            string
+	Usage              string
+	Example            string
+	ExampleHighlight   string
+	ExampleTranslation string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+func PosLabel(pos string) string {
+	switch pos {
+	case PosVerb:
+		return "глагол"
+	case PosNoun:
+		return "существительное"
+	case PosAdj:
+		return "прилагательное"
+	case PosAdv:
+		return "наречие"
+	default:
+		return ""
+	}
 }
 
 func (c *Card) Validate() error {
 	c.Word = strings.TrimSpace(c.Word)
 	c.Translation = strings.TrimSpace(c.Translation)
 	c.Pos = strings.TrimSpace(c.Pos)
-	c.PosRu = strings.TrimSpace(c.PosRu)
 	c.IPA = strings.TrimSpace(c.IPA)
-	c.RusTrans = strings.TrimSpace(c.RusTrans)
-	c.Stress = strings.TrimSpace(c.Stress)
-	c.ExtraLabel = strings.TrimSpace(c.ExtraLabel)
-	c.Extra = strings.TrimSpace(c.Extra)
-	c.Style = strings.TrimSpace(c.Style)
+	c.Pronunciation = strings.TrimSpace(c.Pronunciation)
+	c.StressNote = strings.TrimSpace(c.StressNote)
+	c.Grammar = strings.TrimSpace(c.Grammar)
+	c.Usage = strings.TrimSpace(c.Usage)
 	c.Example = strings.TrimSpace(c.Example)
 	c.ExampleHighlight = strings.TrimSpace(c.ExampleHighlight)
-	c.ExampleRu = strings.TrimSpace(c.ExampleRu)
+	c.ExampleTranslation = strings.TrimSpace(c.ExampleTranslation)
 
-	if c.Word == "" || c.Translation == "" || c.Pos == "" || c.PosRu == "" {
-		return fmt.Errorf("word, translation, pos and posRu are required: %w", core_errors.ErrInvalidArgument)
+	if c.Word == "" || c.Translation == "" || c.Pos == "" {
+		return fmt.Errorf("word, translation and pos are required: %w", core_errors.ErrInvalidArgument)
 	}
 
 	switch c.Pos {
@@ -77,7 +88,7 @@ func (c *Card) Validate() error {
 		return fmt.Errorf("example too long: %w", core_errors.ErrInvalidArgument)
 	}
 
-	for _, note := range []string{c.IPA, c.RusTrans, c.Stress, c.ExtraLabel, c.Extra, c.Style, c.ExampleHighlight, c.ExampleRu} {
+	for _, note := range []string{c.IPA, c.Pronunciation, c.StressNote, c.Grammar, c.Usage, c.ExampleHighlight, c.ExampleTranslation} {
 		if utf8.RuneCountInString(note) > maxNote {
 			return fmt.Errorf("note too long: %w", core_errors.ErrInvalidArgument)
 		}

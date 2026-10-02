@@ -1,20 +1,12 @@
 import "./App.css"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { listCards, type Card } from "./api/cards"
 import { highlightExample } from "./study/highlight"
 import { restoreDeck, saveProgress, stepBack, stepForward } from "./study/order"
 import { canSpeak, initVoices, speakWord, stopSpeaking } from "./study/speak"
+import { applyTheme, readTheme, themes, type Theme } from "./study/theme"
 
-const themes = ["dark", "light", "sepia", "alt-dark"] as const
-type Theme = (typeof themes)[number]
 type Status = "loading" | "ready" | "empty" | "error"
-
-const themeColors: Record<Theme, string> = {
-  dark: "#07070a",
-  light: "#f4f3ef",
-  sepia: "#f0dfbd",
-  "alt-dark": "#050507",
-}
 
 const themeMeta: Record<Theme, { label: string; title: string; icon: string }> = {
   dark: {
@@ -39,15 +31,6 @@ const themeMeta: Record<Theme, { label: string; title: string; icon: string }> =
   },
 }
 
-function readTheme(): Theme {
-  try {
-    const saved = localStorage.getItem("ew-theme")
-    return themes.includes(saved as Theme) ? (saved as Theme) : "dark"
-  } catch {
-    return "dark"
-  }
-}
-
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
   const tag = target.tagName
@@ -58,23 +41,40 @@ function isTypingTarget(target: EventTarget | null) {
 export default function App() {
   const [cards, setCards] = useState<Card[]>([])
   const [index, setIndex] = useState(0)
-  const [error, setError] = useState("")
   const [status, setStatus] = useState<Status>("loading")
   const [reload, setReload] = useState(0)
   const [theme, setTheme] = useState<Theme>(readTheme)
-  const [speechOn] = useState(canSpeak)
+  const speechOn = canSpeak()
   const [speaking, setSpeaking] = useState(false)
   const [speechLive, setSpeechLive] = useState("")
+
+  const haltSpeech = useCallback(() => {
+    stopSpeaking()
+    setSpeaking(false)
+    setSpeechLive("")
+  }, [])
+
+  const showNext = useCallback(() => {
+    haltSpeech()
+    const next = stepForward(cards, index)
+    setCards(next.items)
+    setIndex(next.index)
+  }, [cards, haltSpeech, index])
+
+  const showPrevious = useCallback(() => {
+    haltSpeech()
+    setIndex(stepBack(cards, index))
+  }, [cards, haltSpeech, index])
 
   useEffect(() => {
     initVoices()
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    listCards().then(
+    const controller = new AbortController()
+    listCards(controller.signal).then(
       (list) => {
-        if (cancelled) return
+        if (controller.signal.aborted) return
         if (list.items.length === 0) {
           setCards([])
           setIndex(0)
@@ -84,18 +84,16 @@ export default function App() {
         const deck = restoreDeck(list.items)
         setCards(deck.items)
         setIndex(deck.index)
-        setError("")
         setStatus("ready")
       },
       (err: unknown) => {
-        if (cancelled) return
+        if (controller.signal.aborted || (err instanceof Error && err.name === "AbortError")) return
         setCards([])
-        setError(err instanceof Error ? err.message : "API unavailable")
         setStatus("error")
       },
     )
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [reload])
 
@@ -105,20 +103,7 @@ export default function App() {
   }, [status, index, cards])
 
   useEffect(() => {
-    const isAlt = theme.startsWith("alt-")
-    const isLight = theme === "light" || theme === "sepia"
-    const root = document.documentElement
-    root.dataset.theme = theme
-    root.dataset.themeFamily = isAlt ? "alt" : "default"
-    root.style.colorScheme = isLight ? "light" : "dark"
-    const altFonts = document.getElementById("fonts-alt")
-    if (altFonts instanceof HTMLLinkElement) altFonts.media = isAlt ? "all" : "not all"
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[theme])
-    try {
-      localStorage.setItem("ew-theme", theme)
-    } catch {
-      // Theme still applies for this visit.
-    }
+    applyTheme(theme)
   }, [theme])
 
   useEffect(() => {
@@ -157,28 +142,9 @@ export default function App() {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  })
-
-  function haltSpeech() {
-    stopSpeaking()
-    setSpeaking(false)
-    setSpeechLive("")
-  }
-
-  function showNext() {
-    haltSpeech()
-    const next = stepForward(cards, index)
-    setCards(next.items)
-    setIndex(next.index)
-  }
-
-  function showPrevious() {
-    haltSpeech()
-    setIndex(stepBack(cards, index))
-  }
+  }, [cards, index, showNext, showPrevious, status])
 
   function retry() {
-    setError("")
     setStatus("loading")
     setReload((current) => current + 1)
   }
@@ -239,7 +205,7 @@ export default function App() {
           {!ready && (
             <p className="card__empty">
               {status === "loading" && "Загрузка…"}
-              {status === "error" && error}
+              {status === "error" && "Не удалось загрузить словарь"}
               {status === "empty" && "Словарь пуст."}
             </p>
           )}
@@ -280,22 +246,22 @@ export default function App() {
                   <h3 className="card__label">Транскрипция и ударение</h3>
                   <p className="card__trans">
                     <span className="card__ipa">{card.ipa}</span>
-                    <span className="card__rus">{card.rusTrans}</span>
-                    <span className="card__stress">{card.stress}</span>
+                    <span className="card__rus">{card.pronunciation}</span>
+                    <span className="card__stress">{card.stressNote}</span>
                   </p>
                 </section>
                 <section className="card__block">
-                  <h3 className="card__label">{card.extraLabel || "Грамматика"}</h3>
-                  <p className="card__text">{card.extra}</p>
+                  <h3 className="card__label">Грамматика</h3>
+                  <p className="card__text">{card.grammar}</p>
                 </section>
                 <section className="card__block">
                   <h3 className="card__label">Контекст и стиль</h3>
-                  <p className="card__text">{card.style}</p>
+                  <p className="card__text">{card.usage}</p>
                 </section>
                 <section className="card__block">
                   <h3 className="card__label">Пример</h3>
                   <p className="card__example" lang="en">{highlightExample(card.example, card.exampleHighlight)}</p>
-                  <p className="card__example-ru">{card.exampleRu}</p>
+                  <p className="card__example-ru">{card.exampleTranslation}</p>
                 </section>
               </div>
 

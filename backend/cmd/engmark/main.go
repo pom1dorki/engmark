@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	core_http_middleware "github.com/pom1dorki/engmark/internal/core/transport/http/middleware"
 	core_http_server "github.com/pom1dorki/engmark/internal/core/transport/http/server"
 	catalog_admin "github.com/pom1dorki/engmark/internal/features/catalog/admin"
+	catalog_cardsfile "github.com/pom1dorki/engmark/internal/features/catalog/cardsfile"
 	catalog_postgres_repository "github.com/pom1dorki/engmark/internal/features/catalog/repository/postgres"
 	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
 	catalog_transport_http "github.com/pom1dorki/engmark/internal/features/catalog/transport/http"
@@ -56,16 +58,52 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := core_pgx_pool.NewPool(ctx, core_pgx_pool.NewConfigMust())
+	pgConfig, err := core_pgx_pool.NewConfig()
+	if err != nil {
+		logger.Error("failed to init postgres config", zap.Error(err))
+		os.Exit(1)
+	}
+	if dir := strings.TrimSpace(os.Getenv("MIGRATIONS_PATH")); dir != "" {
+		dsn, err := core_pgx_pool.ConnectionURL(pgConfig)
+		if err != nil {
+			logger.Error("failed to build postgres url", zap.Error(err))
+			os.Exit(1)
+		}
+		if err := core_pgx_pool.MigrateUp(dsn, dir); err != nil {
+			logger.Error("failed to migrate", zap.Error(err))
+			os.Exit(1)
+		}
+		logger.Info("database schema is current")
+	}
+
+	pool, err := core_pgx_pool.NewPool(ctx, pgConfig)
 	if err != nil {
 		logger.Error("failed to init postgres connection pool", zap.Error(err))
 		os.Exit(1)
 	}
 	defer pool.Close()
 
+	catalogSvc := catalog_service.New(catalog_postgres_repository.New(pool))
+	if cardsPath := strings.TrimSpace(os.Getenv("CARDS_FILE")); cardsPath != "" {
+		cards, err := catalog_cardsfile.Read(cardsPath)
+		if err != nil {
+			logger.Error("failed to read cards", zap.Error(err))
+			os.Exit(1)
+		}
+		if err := catalogSvc.ReplaceAdminCards(ctx, cards); err != nil {
+			logger.Error("failed to replace admin deck", zap.Error(err))
+			os.Exit(1)
+		}
+		logger.Info("replaced admin deck", zap.Int("cards", len(cards)))
+	}
+
 	healthHandler := health_transport_http.NewHandler(health_service.NewService(pool))
 
-	httpConfig := core_http_server.NewConfigMust()
+	httpConfig, err := core_http_server.NewConfig()
+	if err != nil {
+		logger.Error("failed to init http config", zap.Error(err))
+		os.Exit(1)
+	}
 	httpServer := core_http_server.NewHTTPServer(
 		httpConfig,
 		logger,
@@ -79,15 +117,18 @@ func main() {
 
 	httpServer.RegisterRoutes(healthHandler.Routes()...)
 
-	catalogHandler := catalog_transport_http.New(
-		catalog_service.New(catalog_postgres_repository.New(pool)),
-		adminConfig.Token,
-	)
+	catalogHandler := catalog_transport_http.New(catalogSvc, adminConfig.Token)
 	v1 := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
 	v1.RegisterRoutes(catalogHandler.Routes()...)
 	httpServer.RegisterAPIRouters(v1)
 
-	httpServer.RegisterRoutes(swaggerRoute())
+	if httpConfig.Swagger {
+		httpServer.RegisterRoutes(swaggerRoute())
+	}
+	if err := httpServer.RegisterStatic(httpConfig.StaticDir); err != nil {
+		logger.Error("failed to register static files", zap.Error(err))
+		os.Exit(1)
+	}
 
 	if err := httpServer.Run(ctx); err != nil {
 		logger.Error("HTTP server run error", zap.Error(err))
