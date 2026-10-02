@@ -397,13 +397,10 @@
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "id": {
@@ -418,19 +415,19 @@
                 "posRu": {
                     "type": "string"
                 },
-                "rusTrans": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "version": {
@@ -473,13 +470,10 @@
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "ipa": {
@@ -488,19 +482,16 @@
                 "pos": {
                     "type": "string"
                 },
-                "posRu": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "rusTrans": {
-                    "type": "string"
-                },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "word": {
@@ -516,6 +507,9 @@
                 },
                 "id": {
                     "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
                 },
                 "slug": {
                     "type": "string"
@@ -534,13 +528,10 @@
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "ipa": {
@@ -549,19 +540,16 @@
                 "pos": {
                     "type": "string"
                 },
-                "posRu": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "rusTrans": {
-                    "type": "string"
-                },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "version": {

@@ -12,20 +12,18 @@ type Nullable[T any] struct {
 }
 
 type CardPatch struct {
-	Version          int
-	Word             Nullable[string]
-	Translation      Nullable[string]
-	IPA              Nullable[string]
-	RusTrans         Nullable[string]
-	Stress           Nullable[string]
-	Pos              Nullable[string]
-	PosRu            Nullable[string]
-	ExtraLabel       Nullable[string]
-	Extra            Nullable[string]
-	Style            Nullable[string]
-	Example          Nullable[string]
-	ExampleHighlight Nullable[string]
-	ExampleRu        Nullable[string]
+	Version            int
+	Word               Nullable[string]
+	Translation        Nullable[string]
+	IPA                Nullable[string]
+	Pronunciation      Nullable[string]
+	StressNote         Nullable[string]
+	Pos                Nullable[string]
+	Grammar            Nullable[string]
+	Usage              Nullable[string]
+	Example            Nullable[string]
+	ExampleHighlight   Nullable[string]
+	ExampleTranslation Nullable[string]
 }
 
 func Apply(card Card, patch CardPatch) (Card, error) {
@@ -39,16 +37,14 @@ func Apply(card Card, patch CardPatch) (Card, error) {
 	applyString(&card.Word, patch.Word)
 	applyString(&card.Translation, patch.Translation)
 	applyString(&card.IPA, patch.IPA)
-	applyString(&card.RusTrans, patch.RusTrans)
-	applyString(&card.Stress, patch.Stress)
+	applyString(&card.Pronunciation, patch.Pronunciation)
+	applyString(&card.StressNote, patch.StressNote)
 	applyString(&card.Pos, patch.Pos)
-	applyString(&card.PosRu, patch.PosRu)
-	applyString(&card.ExtraLabel, patch.ExtraLabel)
-	applyString(&card.Extra, patch.Extra)
-	applyString(&card.Style, patch.Style)
+	applyString(&card.Grammar, patch.Grammar)
+	applyString(&card.Usage, patch.Usage)
 	applyString(&card.Example, patch.Example)
 	applyString(&card.ExampleHighlight, patch.ExampleHighlight)
-	applyString(&card.ExampleRu, patch.ExampleRu)
+	applyString(&card.ExampleTranslation, patch.ExampleTranslation)
 
 	if err := card.Validate(); err != nil {
 		return Card{}, err

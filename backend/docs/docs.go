@@ -403,13 +403,10 @@ const docTemplate = `{
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "id": {
@@ -424,19 +421,19 @@ const docTemplate = `{
                 "posRu": {
                     "type": "string"
                 },
-                "rusTrans": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "version": {
@@ -479,13 +476,10 @@ const docTemplate = `{
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "ipa": {
@@ -494,19 +488,16 @@ const docTemplate = `{
                 "pos": {
                     "type": "string"
                 },
-                "posRu": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "rusTrans": {
-                    "type": "string"
-                },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "word": {
@@ -522,6 +513,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
                 },
                 "slug": {
                     "type": "string"
@@ -540,13 +534,10 @@ const docTemplate = `{
                 "exampleHighlight": {
                     "type": "string"
                 },
-                "exampleRu": {
+                "exampleTranslation": {
                     "type": "string"
                 },
-                "extra": {
-                    "type": "string"
-                },
-                "extraLabel": {
+                "grammar": {
                     "type": "string"
                 },
                 "ipa": {
@@ -555,19 +546,16 @@ const docTemplate = `{
                 "pos": {
                     "type": "string"
                 },
-                "posRu": {
+                "pronunciation": {
                     "type": "string"
                 },
-                "rusTrans": {
-                    "type": "string"
-                },
-                "stress": {
-                    "type": "string"
-                },
-                "style": {
+                "stressNote": {
                     "type": "string"
                 },
                 "translation": {
+                    "type": "string"
+                },
+                "usage": {
                     "type": "string"
                 },
                 "version": {

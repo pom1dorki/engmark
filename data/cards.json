@@ -1,0 +1,67 @@
+[
+  {
+    "word": "persist",
+    "translation": "упорствовать, продолжать (несмотря на трудности)",
+    "ipa": "/pərˈsɪst/",
+    "pronunciation": "[пэрси́ст]",
+    "stressNote": "ударение на 2-м слоге",
+    "pos": "verb",
+    "grammar": "Правильный глагол: persist — persisted — persisted.",
+    "usage": "Нейтральный, чуть формальный. Уместен в учёбе, работе, мотивационных и новостных текстах. Не звучит ни слишком канцелярски, ни слишком разговорно.",
+    "example": "If you persist with daily practice, the words will stick.",
+    "exampleHighlight": "persist",
+    "exampleTranslation": "Если будешь упорно заниматься каждый день, слова закрепятся."
+  },
+  {
+    "word": "resilient",
+    "translation": "устойчивый, способный восстанавливаться",
+    "ipa": "/rɪˈzɪliənt/",
+    "pronunciation": "[ризи́лиэнт]",
+    "stressNote": "ударение на 2-м слоге",
+    "pos": "adj",
+    "grammar": "Прилагательное. Сравнительная степень: more resilient; превосходная: most resilient.",
+    "usage": "Нейтральный. Часто в психологии, бизнесе, описании материалов и систем.",
+    "example": "Children are remarkably resilient after setbacks.",
+    "exampleHighlight": "resilient",
+    "exampleTranslation": "Дети удивительно быстро восстанавливаются после неудач."
+  },
+  {
+    "word": "glance",
+    "translation": "быстро взглянуть, бросить взгляд",
+    "ipa": "/ɡlɑːns/",
+    "pronunciation": "[глаанс]",
+    "stressNote": "один слог",
+    "pos": "verb",
+    "grammar": "Правильный глагол: glance — glanced — glanced. Часто с предлогом at.",
+    "usage": "Нейтральный, звучит естественно и в разговоре, и в письме.",
+    "example": "She glanced at the clock and hurried out.",
+    "exampleHighlight": "glanced",
+    "exampleTranslation": "Она взглянула на часы и поспешила выйти."
+  },
+  {
+    "word": "thoroughly",
+    "translation": "тщательно, основательно",
+    "ipa": "/ˈθʌrəli/",
+    "pronunciation": "[θа́рэли]",
+    "stressNote": "ударение на 1-м слоге",
+    "pos": "adv",
+    "grammar": "Наречие образа действия, образовано от прилагательного thorough + -ly.",
+    "usage": "Нейтральный. Часто в инструкциях, отчётах, учебных текстах.",
+    "example": "Read the instructions thoroughly before you start.",
+    "exampleHighlight": "thoroughly",
+    "exampleTranslation": "Внимательно прочитайте инструкции, прежде чем начать."
+  },
+  {
+    "word": "threshold",
+    "translation": "порог, предел; пороговое значение",
+    "ipa": "/ˈθreʃhəʊld/",
+    "pronunciation": "[θрэ́шхоулд]",
+    "stressNote": "ударение на 1-м слоге",
+    "pos": "noun",
+    "grammar": "Исчисляемое существительное. Множественное число: thresholds.",
+    "usage": "Нейтральный и технический. Часто в науке, технике, психологии.",
+    "example": "The noise crossed the threshold of what I could ignore.",
+    "exampleHighlight": "threshold",
+    "exampleTranslation": "Шум перешёл порог того, что я мог игнорировать."
+  }
+]

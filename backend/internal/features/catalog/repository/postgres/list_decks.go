@@ -10,7 +10,7 @@ import (
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
 )
 
-const deckColumns = `id, slug, title, created_at`
+const deckColumns = `id, slug, title, kind, created_at`
 
 func (r *Repository) ListDecks(ctx context.Context) ([]catalog_domain.Deck, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
@@ -70,7 +70,7 @@ type deckScanner interface {
 
 func scanDeck(row deckScanner) (catalog_domain.Deck, error) {
 	var d catalog_domain.Deck
-	if err := row.Scan(&d.ID, &d.Slug, &d.Title, &d.CreatedAt); err != nil {
+	if err := row.Scan(&d.ID, &d.Slug, &d.Title, &d.Kind, &d.CreatedAt); err != nil {
 		return catalog_domain.Deck{}, fmt.Errorf("scan deck: %w", err)
 	}
 	return d, nil

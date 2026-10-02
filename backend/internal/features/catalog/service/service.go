@@ -21,6 +21,8 @@ type Repository interface {
 	ListDecks(ctx context.Context) ([]catalog_domain.Deck, error)
 	GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error)
 	GetDeckBySlug(ctx context.Context, slug string) (catalog_domain.Deck, error)
+	GetAdminDeck(ctx context.Context) (catalog_domain.Deck, error)
+	ReplaceDeckCards(ctx context.Context, deckID int64, cards []catalog_domain.Card) error
 	CreateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
 	UpdateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
 	DeleteCard(ctx context.Context, id int64) error
@@ -100,12 +102,10 @@ func (s *Service) listByDeck(ctx context.Context, deckID int64, limit, offset in
 func normalizePage(limit, offset *int) (int, int, error) {
 	lim := defaultLimit
 	if limit != nil {
-		if *limit > maxLimit {
-			return 0, 0, fmt.Errorf("limit %d exceeds %d: %w", *limit, maxLimit, core_errors.ErrInvalidArgument)
+		if *limit < 1 || *limit > maxLimit {
+			return 0, 0, fmt.Errorf("limit %d must be from 1 to %d: %w", *limit, maxLimit, core_errors.ErrInvalidArgument)
 		}
-		if *limit > 0 {
-			lim = *limit
-		}
+		lim = *limit
 	}
 
 	off := 0

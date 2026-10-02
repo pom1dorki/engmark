@@ -2,7 +2,12 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   api:
@@ -13,6 +18,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+      - run: docker pull postgres:18.4-bookworm
       - run: make test
 
   web:
@@ -31,3 +37,18 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -p engmark-prod --profile host config
+        env:
+          POSTGRES_USER: engmark
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: engmark
+          ADMIN_TOKEN: ci
+          HTTP_ALLOWED_ORIGINS: http://127.0.0.1
+          ENGMARK_SITE: ":80"
+      - run: docker build -t engmark:ci .

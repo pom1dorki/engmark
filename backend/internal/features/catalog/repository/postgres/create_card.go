@@ -16,13 +16,13 @@ func (r *Repository) CreateCard(ctx context.Context, card catalog_domain.Card) (
 
 	query := `
 		INSERT INTO cards (
-			deck_id, word, translation, ipa, rus_trans, stress,
-			pos, pos_ru, extra_label, extra, style,
-			example, example_highlight, example_ru
+			deck_id, word, translation, ipa, pronunciation, stress_note,
+			pos, grammar, usage,
+			example, example_highlight, example_translation
 		) VALUES (
 			$1, $2, $3, $4, $5, $6,
-			$7, $8, $9, $10, $11,
-			$12, $13, $14
+			$7, $8, $9,
+			$10, $11, $12
 		)
 		RETURNING ` + cardColumns
 
@@ -31,16 +31,14 @@ func (r *Repository) CreateCard(ctx context.Context, card catalog_domain.Card) (
 		card.Word,
 		card.Translation,
 		card.IPA,
-		card.RusTrans,
-		card.Stress,
+		card.Pronunciation,
+		card.StressNote,
 		card.Pos,
-		card.PosRu,
-		card.ExtraLabel,
-		card.Extra,
-		card.Style,
+		card.Grammar,
+		card.Usage,
 		card.Example,
 		card.ExampleHighlight,
-		card.ExampleRu,
+		card.ExampleTranslation,
 	))
 	if err != nil {
 		if errors.Is(err, core_postgres_pool.ErrUniqueViolation) {

@@ -5,16 +5,15 @@ export type Card = {
   word: string
   translation: string
   ipa: string
-  rusTrans: string
-  stress: string
+  pronunciation: string
+  stressNote: string
   pos: string
   posRu: string
-  extraLabel: string
-  extra: string
-  style: string
+  grammar: string
+  usage: string
   example: string
   exampleHighlight: string
-  exampleRu: string
+  exampleTranslation: string
   createdAt: string
   updatedAt: string
 }
@@ -33,16 +32,22 @@ export class CatalogError extends Error {
   }
 }
 
-export async function listCards(): Promise<CardList> {
+function isAbortError(err: unknown) {
+  return err instanceof Error && err.name === "AbortError"
+}
+
+export async function listCards(signal?: AbortSignal): Promise<CardList> {
   const base = import.meta.env.VITE_API_BASE_URL
-  if (!base) {
+  // An empty base is the hosted site: the page and the API share one origin.
+  if (base == null) {
     throw new CatalogError("VITE_API_BASE_URL is not set")
   }
 
   let response: Response
   try {
-    response = await fetch(`${base}/api/v1/cards?limit=100`)
-  } catch {
+    response = await fetch(`${base.replace(/\/$/, "")}/api/v1/cards?limit=100`, { signal })
+  } catch (err) {
+    if (isAbortError(err)) throw err
     throw new CatalogError("API unavailable")
   }
 

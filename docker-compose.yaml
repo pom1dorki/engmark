@@ -1,13 +1,17 @@
 services:
+  # make start. Postgres is published on 127.0.0.1:5433.
   engmark-postgres:
+    profiles: [dev]
     image: postgres:18.4-bookworm
     container_name: engmark-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
-      - ${PROJECT_ROOT}/out/pgdata:/var/lib/postgresql
+      - ./out/pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 2s
@@ -16,23 +20,15 @@ services:
     restart: unless-stopped
 
   engmark-migrate:
+    profiles: [dev]
     image: migrate/migrate:v4.19.1
     volumes:
-      - ${PROJECT_ROOT}/backend/migrations:/migrations
-
-  port-forwarder:
-    image: alpine/socat:1.8.1.3
-    container_name: engmark-postgres-port-forwarder
-    command: tcp-listen:5432,fork,reuseaddr tcp-connect:engmark-postgres:5432
-    ports:
-      - "127.0.0.1:5433:5432"
-    depends_on:
-      engmark-postgres:
-        condition: service_healthy
+      - ./backend/migrations:/migrations
 
   engmark-swagger:
+    profiles: [dev]
     build:
-      context: ${PROJECT_ROOT}
+      context: .
       dockerfile_inline: |
         FROM golang:1.27.1-alpine
         RUN apk add --no-cache git
@@ -41,4 +37,81 @@ services:
         ENTRYPOINT ["swag"]
     working_dir: /code/backend
     volumes:
-      - ${PROJECT_ROOT}:/code
+      - .:/code
+
+  # make host-up. Postgres is only on the Docker network.
+  postgres:
+    profiles: [host]
+    image: postgres:18.4-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    profiles: [host]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HTTP_ADDR: ":8080"
+      HTTP_SHUTDOWN_TIMEOUT: 30s
+      HTTP_STATIC_DIR: /srv/engmark
+      HTTP_SWAGGER: "false"
+      HTTP_ALLOWED_ORIGINS: ${HTTP_ALLOWED_ORIGINS:?set HTTP_ALLOWED_ORIGINS in .env}
+      # POSTGRES_HOST in .env is the laptop address. The container uses the Docker service.
+      POSTGRES_HOST: ${ENGMARK_DB_HOST:-postgres}
+      POSTGRES_PORT: ${ENGMARK_DB_PORT:-5432}
+      POSTGRES_SSLMODE: ${ENGMARK_DB_SSLMODE:-disable}
+      POSTGRES_SSLROOTCERT: ${POSTGRES_SSLROOTCERT:-}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_TIMEOUT: ${POSTGRES_TIMEOUT:-10s}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env}
+      LOGGER_LEVEL: ${LOGGER_LEVEL:-info}
+      TIME_ZONE: ${TIME_ZONE:-UTC}
+      MIGRATIONS_PATH: /migrations
+      CARDS_FILE: ${CARDS_FILE-/data/cards.json}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    stop_grace_period: 35s
+    restart: unless-stopped
+
+  caddy:
+    profiles: [host]
+    image: caddy:2-alpine
+    environment:
+      ENGMARK_SITE: ${ENGMARK_SITE:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:

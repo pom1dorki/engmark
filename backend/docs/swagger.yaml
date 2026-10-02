@@ -10,11 +10,9 @@ definitions:
         type: string
       exampleHighlight:
         type: string
-      exampleRu:
+      exampleTranslation:
         type: string
-      extra:
-        type: string
-      extraLabel:
+      grammar:
         type: string
       id:
         type: integer
@@ -24,15 +22,15 @@ definitions:
         type: string
       posRu:
         type: string
-      rusTrans:
+      pronunciation:
         type: string
-      stress:
-        type: string
-      style:
+      stressNote:
         type: string
       translation:
         type: string
       updatedAt:
+        type: string
+      usage:
         type: string
       version:
         type: integer
@@ -60,25 +58,21 @@ definitions:
         type: string
       exampleHighlight:
         type: string
-      exampleRu:
+      exampleTranslation:
         type: string
-      extra:
-        type: string
-      extraLabel:
+      grammar:
         type: string
       ipa:
         type: string
       pos:
         type: string
-      posRu:
+      pronunciation:
         type: string
-      rusTrans:
-        type: string
-      stress:
-        type: string
-      style:
+      stressNote:
         type: string
       translation:
+        type: string
+      usage:
         type: string
       word:
         type: string
@@ -89,6 +83,8 @@ definitions:
         type: string
       id:
         type: integer
+      kind:
+        type: string
       slug:
         type: string
       title:
@@ -100,25 +96,21 @@ definitions:
         type: string
       exampleHighlight:
         type: string
-      exampleRu:
+      exampleTranslation:
         type: string
-      extra:
-        type: string
-      extraLabel:
+      grammar:
         type: string
       ipa:
         type: string
       pos:
         type: string
-      posRu:
+      pronunciation:
         type: string
-      rusTrans:
-        type: string
-      stress:
-        type: string
-      style:
+      stressNote:
         type: string
       translation:
+        type: string
+      usage:
         type: string
       version:
         type: integer

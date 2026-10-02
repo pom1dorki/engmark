@@ -26,9 +26,6 @@ func (s *Service) CreateCard(ctx context.Context, deckID *int64, card catalog_do
 	if err := card.Validate(); err != nil {
 		return catalog_domain.Card{}, err
 	}
-	if card.ExtraLabel == "" {
-		card.ExtraLabel = "Грамматика"
-	}
 
 	return s.repo.CreateCard(ctx, card)
 }

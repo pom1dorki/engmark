@@ -1,8 +1,16 @@
+# Secrets
 .env
 .env.local
 .env.*.local
+*.local
 
+# Build output
 bin/
+out/
+dist/
+dist-ssr/
+coverage/
+.cache/
 *.exe
 *.exe~
 *.dll
@@ -12,19 +20,25 @@ bin/
 *.out
 vendor/
 
+# Dependencies
 node_modules/
-dist/
-dist-ssr/
-*.local
 
+# Logs
+logs
 *.log
-out/
-coverage/
-.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
+# Editors
 .DS_Store
 Thumbs.db
-
 .idea/
 .vscode/
-*.swp
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

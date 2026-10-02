@@ -14,9 +14,31 @@ func persistCard() Card {
 		Word:             "persist",
 		Translation:      "упорствовать, продолжать (несмотря на трудности)",
 		Pos:              PosVerb,
-		PosRu:            "глагол",
 		Example:          "If you persist with daily practice, the words will stick.",
 		ExampleHighlight: "persist",
+	}
+}
+
+func TestPosLabel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		pos  string
+		want string
+	}{
+		{pos: PosVerb, want: "глагол"},
+		{pos: PosNoun, want: "существительное"},
+		{pos: PosAdj, want: "прилагательное"},
+		{pos: PosAdv, want: "наречие"},
+		{pos: "adjective", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.pos, func(t *testing.T) {
+			t.Parallel()
+			if got := PosLabel(tt.pos); got != tt.want {
+				t.Fatalf("PosLabel(%q) = %q, want %q", tt.pos, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -28,7 +50,7 @@ func TestCardValidate(t *testing.T) {
 		card    Card
 		wantErr error
 	}{
-		{name: "seed persist", card: persistCard()},
+		{name: "valid card", card: persistCard()},
 		{name: "empty word", card: func() Card { c := persistCard(); c.Word = ""; return c }(), wantErr: core_errors.ErrInvalidArgument},
 		{name: "whitespace word", card: func() Card { c := persistCard(); c.Word = "   "; return c }(), wantErr: core_errors.ErrInvalidArgument},
 		{name: "pos adjective", card: func() Card { c := persistCard(); c.Pos = "adjective"; return c }(), wantErr: core_errors.ErrInvalidArgument},

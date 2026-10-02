@@ -35,13 +35,12 @@ func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 	status, code := mapError(err)
 
 	logFunc := h.log.Warn
-	clientMsg := msg
+	clientMsg := clientErrorMessage(err, msg, status)
 	switch status {
 	case http.StatusNotFound:
 		logFunc = h.log.Debug
 	case http.StatusInternalServerError:
 		logFunc = h.log.Error
-		clientMsg = "internal error"
 	}
 
 	logFunc(msg, zap.Error(err), zap.String("request_id", h.requestID))

@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
@@ -58,6 +54,7 @@ func Start(ctx context.Context) (*core_pgx_pool.Pool, func(), error) {
 		Password: dbPass,
 		Database: dbName,
 		Timeout:  5 * time.Second,
+		SSLMode:  "disable",
 	})
 	if err != nil {
 		cleanupContainer()
@@ -78,18 +75,5 @@ func migrateUp(ctx context.Context, container *postgres.PostgresContainer) error
 	}
 	_, file, _, _ := runtime.Caller(0)
 	dir := filepath.Join(filepath.Dir(file), "..", "..", "migrations")
-
-	m, err := migrate.New(
-		"file://"+filepath.ToSlash(dir),
-		strings.Replace(dsn, "postgres://", "pgx5://", 1),
-	)
-	if err != nil {
-		return fmt.Errorf("migrate open: %w", err)
-	}
-	defer m.Close()
-
-	if err := m.Up(); err != nil {
-		return fmt.Errorf("migrate up: %w", err)
-	}
-	return nil
+	return core_pgx_pool.MigrateUp(dsn, dir)
 }
