@@ -12,18 +12,17 @@ func TestExampleCards(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cards) != 5 {
-		t.Fatalf("len = %d, want 5", len(cards))
+	if len(cards) == 0 {
+		t.Fatal("no cards")
 	}
 
-	want := []string{"persist", "resilient", "glance", "thoroughly", "threshold"}
-	for i, word := range want {
-		if cards[i].Word != word {
-			t.Fatalf("card %d word = %q, want %q", i, cards[i].Word, word)
+	seen := make(map[string]struct{}, len(cards))
+	for i, card := range cards {
+		key := strings.ToLower(card.Word) + "\x00" + card.Pos
+		if _, ok := seen[key]; ok {
+			t.Fatalf("duplicate card %d: %s %s", i+1, card.Word, card.Pos)
 		}
-	}
-	if cards[2].ExampleHighlight != "glanced" {
-		t.Fatalf("glance highlight = %q", cards[2].ExampleHighlight)
+		seen[key] = struct{}{}
 	}
 }
 

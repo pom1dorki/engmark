@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
@@ -78,13 +79,17 @@ func TestImportReplacesAdminDeckOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := adminWords(t, ctx)
-	want := []string{"glance", "persist", "resilient", "thoroughly", "threshold"}
+	want := make([]string, len(fileCards))
+	for i, card := range fileCards {
+		want[i] = card.Word
+	}
+	sort.Strings(want)
 	if len(got) != len(want) {
-		t.Fatalf("admin words = %v", got)
+		t.Fatalf("admin words = %d, want %d", len(got), len(want))
 	}
 	for i := range want {
 		if got[i] != want[i] {
-			t.Fatalf("admin words = %v", got)
+			t.Fatalf("admin words mismatch at %d: got %q want %q", i, got[i], want[i])
 		}
 	}
 	if got := learnerCards(t, ctx); got != 1 {

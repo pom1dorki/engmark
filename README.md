@@ -60,7 +60,7 @@ curl -s -X POST http://localhost:5050/api/v1/admin/cards \
 make web
 ```
 
-Open http://localhost:5173. Words come from `GET /api/v1/cards`. The browser shuffles the order. It remembers the deck order and the current card in `ew-progress`, and the theme in `ew-theme`.
+Open http://localhost:5173. Words come from `GET /api/v1/cards`, a page of 100 at a time, until the whole deck is loaded. The next word is a random card that has not appeared yet in this pass. After the last card the deck is shuffled again. The place is remembered in `ew-progress`, and the theme in `ew-theme`.
 
 ## Host on a server
 
