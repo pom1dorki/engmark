@@ -1,4 +1,4 @@
-include .env
+-include .env
 export
 
 export PROJECT_ROOT := $(CURDIR)
