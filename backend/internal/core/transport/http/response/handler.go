@@ -26,10 +26,6 @@ func (h *HTTPResponseHandler) JSONResponse(body any, statusCode int) {
 	}
 }
 
-func (h *HTTPResponseHandler) NoContentResponse() {
-	h.rw.WriteHeader(http.StatusNoContent)
-}
-
 func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 	status, code := mapError(err)
 	clientMsg := clientErrorMessage(err, msg, status)

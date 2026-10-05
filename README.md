@@ -54,6 +54,26 @@ API слушает `http://localhost:5050`. Экран ходит в `/api` св
 
 Поправьте `data/cards.json` и запустите `make dev`, чтобы опубликовать изменение. `make migrate-create`, `make migrate-up` и `make migrate-down` по-прежнему гоняют CLI миграций на базу разработки.
 
+## Схема базы
+
+Схема лежит в одной миграции `backend/migrations/000001_init.up.sql`. Данные базы не хранятся: каталог каждый раз загружается из `data/cards.json`.
+
+После изменения `000001_init` базу нужно пересоздать.
+
+Локально:
+
+```sh
+make env-down && rm -rf out/pgdata && make dev
+```
+
+На сервере:
+
+```sh
+docker compose --env-file .env -f docker-compose.yaml -p engmark-prod --profile host down -v && make host-up
+```
+
+`down -v` удаляет базу целиком. Если при старте в логе есть `database schema is from another build`, пересоздайте базу этими командами.
+
 ## Экран занятий
 
 `make dev` запускает экран вместе с API. Ctrl+C останавливает оба. Чтобы поднять только экран, когда API уже слушает:

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	core_logger "github.com/pom1dorki/engmark/internal/core/logger"
@@ -108,6 +109,63 @@ func TestStaticFiles(t *testing.T) {
 	head := requestStatic(t, server, http.MethodHead, "/")
 	if head.Code != http.StatusOK || head.Body.Len() != 0 {
 		t.Fatalf("head = %d body %d", head.Code, head.Body.Len())
+	}
+}
+
+func TestStaticManifest(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "dist")
+	if err := os.MkdirAll(filepath.Join(dir, "assets"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("study"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "manifest.webmanifest"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	log, err := core_logger.NewLogger(core_logger.Config{Level: "error"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewHTTPServer(Config{Addr: "127.0.0.1:0"}, log)
+	if err := server.RegisterStatic(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	res := requestStatic(t, server, http.MethodGet, "/manifest.webmanifest")
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d", res.Code)
+	}
+	if got := res.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/manifest+json") {
+		t.Fatalf("content-type = %q", got)
+	}
+}
+
+func TestStaticHidesCSPFile(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "dist")
+	if err := os.MkdirAll(filepath.Join(dir, "assets"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("study"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "csp.txt"), []byte("sha256-test"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	log, err := core_logger.NewLogger(core_logger.Config{Level: "error"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewHTTPServer(Config{Addr: "127.0.0.1:0"}, log)
+	if err := server.RegisterStatic(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	res := requestStatic(t, server, http.MethodGet, "/csp.txt")
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("status = %d", res.Code)
 	}
 }
 
