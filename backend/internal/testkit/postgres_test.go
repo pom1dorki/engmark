@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	core_pgx_pool "github.com/pom1dorki/engmark/internal/core/repository/postgres/pool/pgx"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var testPool *core_pgx_pool.Pool
+var testPool *pgxpool.Pool
 
 func TestMain(m *testing.M) {
 	pool, cleanup, err := Start(context.Background())

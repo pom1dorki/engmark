@@ -13,21 +13,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	core_logger "github.com/pom1dorki/engmark/internal/core/logger"
 	core_http_middleware "github.com/pom1dorki/engmark/internal/core/transport/http/middleware"
 	core_http_server "github.com/pom1dorki/engmark/internal/core/transport/http/server"
 	catalog_postgres_repository "github.com/pom1dorki/engmark/internal/features/catalog/repository/postgres"
 	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
+	catalog_snapshot "github.com/pom1dorki/engmark/internal/features/catalog/snapshot"
 	"github.com/pom1dorki/engmark/internal/testkit"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
-const adminToken = "test-admin-token"
-
-var srv *httptest.Server
+var (
+	srv   *httptest.Server
+	pool  *pgxpool.Pool
+	store *catalog_snapshot.Store
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
-	pool, cleanupDB, err := testkit.Start(ctx)
+	var cleanupDB func()
+	var err error
+	pool, cleanupDB, err = testkit.Start(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "postgres: %v\n", err)
 		os.Exit(1)
@@ -38,16 +47,21 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	httpServer := core_http_server.NewHTTPServer(
-		core_http_server.Config{Addr: "127.0.0.1:0", AllowedOrigins: []string{"http://localhost"}},
+		core_http_server.Config{Addr: "127.0.0.1:0"},
 		log,
-		core_http_middleware.CORS([]string{"http://localhost"}),
 		core_http_middleware.RequestID(),
 		core_http_middleware.Logger(log),
 		core_http_middleware.Trace(),
 		core_http_middleware.Panic(),
 		core_http_middleware.LimitBody(32<<10),
 	)
-	h := New(catalog_service.New(catalog_postgres_repository.New(pool)), adminToken)
+	repo := catalog_postgres_repository.New(pool)
+	store = catalog_snapshot.New()
+	if err := store.Reload(ctx, repo, MarshalCardList); err != nil {
+		fmt.Fprintf(os.Stderr, "snapshot: %v\n", err)
+		os.Exit(1)
+	}
+	h := New(store)
 	v1 := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
 	v1.RegisterRoutes(h.Routes()...)
 	httpServer.RegisterAPIRouters(v1)
@@ -81,7 +95,7 @@ type errEnv struct {
 	RequestID string `json:"request_id"`
 }
 
-func do(t *testing.T, method, path, token string, body any) (*http.Response, []byte) {
+func do(t *testing.T, method, path string, body any) (*http.Response, []byte) {
 	t.Helper()
 	var rdr io.Reader
 	if body != nil {
@@ -98,9 +112,6 @@ func do(t *testing.T, method, path, token string, body any) (*http.Response, []b
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +126,7 @@ func do(t *testing.T, method, path, token string, body any) (*http.Response, []b
 
 func mustList(t *testing.T) cardList {
 	t.Helper()
-	res, raw := do(t, http.MethodGet, "/api/v1/cards?limit=100", "", nil)
+	res, raw := do(t, http.MethodGet, "/api/v1/cards?limit=100", nil)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("list %d: %s", res.StatusCode, raw)
 	}
@@ -133,30 +144,83 @@ func TestListEmpty(t *testing.T) {
 	}
 }
 
+func TestListRevalidates(t *testing.T) {
+	res, raw := do(t, http.MethodGet, "/api/v1/cards?limit=1000", nil)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("list %d: %s", res.StatusCode, raw)
+	}
+	etag := res.Header.Get("ETag")
+	if !strings.HasPrefix(etag, `W/"`) {
+		t.Fatalf("etag = %q", etag)
+	}
+	if res.Header.Get("Cache-Control") != "public, max-age=0, must-revalidate" {
+		t.Fatalf("cache = %q", res.Header.Get("Cache-Control"))
+	}
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/cards?limit=1000", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("If-None-Match", etag)
+	again, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer again.Body.Close()
+	body, err := io.ReadAll(again.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.StatusCode != http.StatusNotModified {
+		t.Fatalf("revalidate %d: %s", again.StatusCode, body)
+	}
+	if len(body) != 0 {
+		t.Fatalf("revalidate body = %q", body)
+	}
+	if again.Header.Get("ETag") != etag {
+		t.Fatalf("304 etag = %q", again.Header.Get("ETag"))
+	}
+
+	ignored, raw := do(t, http.MethodGet, "/api/v1/cards?deck_id=999999&limit=1000", nil)
+	if ignored.StatusCode != http.StatusOK {
+		t.Fatalf("deck_id %d: %s", ignored.StatusCode, raw)
+	}
+	if ignored.Header.Get("ETag") != etag {
+		t.Fatal("deck_id changed the default deck response")
+	}
+}
+
 func TestGetCard(t *testing.T) {
-	body := map[string]string{
-		"word":               "persist",
-		"translation":        "упорствовать, продолжать (несмотря на трудности)",
-		"ipa":                "/pərˈsɪst/",
-		"pronunciation":      "[пэрси́ст]",
-		"stressNote":         "ударение на 2-м слоге",
-		"pos":                "verb",
-		"grammar":            "Правильный глагол: persist — persisted — persisted.",
-		"usage":              "Нейтральный, чуть формальный.",
-		"example":            "If you persist with daily practice, the words will stick.",
-		"exampleHighlight":   "persist",
-		"exampleTranslation": "Если будешь упорно заниматься каждый день, слова закрепятся.",
+	var id int64
+	err := pool.QueryRow(context.Background(), `
+		INSERT INTO cards (
+			deck_id, word, translation, ipa, pronunciation, stress_note,
+			pos, grammar, usage, example, example_highlight, example_translation
+		)
+		SELECT id, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+		FROM decks WHERE slug = 'default'
+		RETURNING id
+	`,
+		"persist",
+		"упорствовать, продолжать (несмотря на трудности)",
+		"/pərˈsɪst/",
+		"[пэрси́ст]",
+		"ударение на 2-м слоге",
+		"verb",
+		"Правильный глагол: persist — persisted — persisted.",
+		"Нейтральный, чуть формальный.",
+		"If you persist with daily practice, the words will stick.",
+		"persist",
+		"Если будешь упорно заниматься каждый день, слова закрепятся.",
+	).Scan(&id)
+	if err != nil {
+		t.Fatal(err)
 	}
-	createdRes, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, body)
-	if createdRes.StatusCode != http.StatusCreated {
-		t.Fatalf("create %d: %s", createdRes.StatusCode, raw)
-	}
-	var created cardBody
-	if err := json.Unmarshal(raw, &created); err != nil {
+	if err := store.Reload(context.Background(), catalog_postgres_repository.New(pool), MarshalCardList); err != nil {
 		t.Fatal(err)
 	}
 
-	res, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
+	res, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", id), nil)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("get %d: %s", res.StatusCode, raw)
 	}
@@ -177,118 +241,121 @@ func TestGetCard(t *testing.T) {
 	}
 }
 
-func TestCreateUnauthorizedDoesNotInsert(t *testing.T) {
-	before := mustList(t).Total
-	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", "", map[string]string{
-		"word": "nope", "translation": "нет", "pos": "noun",
-	})
-	if res.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("status %d: %s", res.StatusCode, raw)
+func TestGetMissingCard(t *testing.T) {
+	res, raw := do(t, http.MethodGet, "/api/v1/cards/999999", nil)
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("get %d: %s", res.StatusCode, raw)
 	}
 	var env errEnv
 	if err := json.Unmarshal(raw, &env); err != nil {
 		t.Fatal(err)
 	}
-	if env.Error.Code != "unauthenticated" || env.RequestID == "" {
+	if env.Error.Code != "not_found" || env.RequestID == "" {
 		t.Fatalf("envelope = %+v", env)
 	}
-	if got := mustList(t).Total; got != before {
-		t.Fatalf("total %d, want %d", got, before)
+}
+
+func TestWriteRoutesAreGone(t *testing.T) {
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/admin/cards"},
+		{http.MethodPatch, "/api/v1/admin/cards/1"},
+		{http.MethodDelete, "/api/v1/admin/cards/1"},
+	} {
+		res, raw := do(t, tc.method, tc.path, map[string]string{"word": "nope"})
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("%s %s = %d: %s", tc.method, tc.path, res.StatusCode, raw)
+		}
 	}
 }
 
-func TestCreateThenConflict(t *testing.T) {
-	word := fmt.Sprintf("word-%d", time.Now().UnixNano())
-	body := map[string]string{
-		"word": word, "translation": "перевод", "pos": "noun",
-	}
-	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, body)
-	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("create %d: %s", res.StatusCode, raw)
-	}
-	var created cardBody
-	if err := json.Unmarshal(raw, &created); err != nil {
+func TestSnapshotMatchesDatabase(t *testing.T) {
+	ctx := context.Background()
+	repo := catalog_postgres_repository.New(pool)
+	if _, err := pool.Exec(ctx, `DELETE FROM cards WHERE deck_id = (SELECT id FROM decks WHERE slug = 'default')`); err != nil {
 		t.Fatal(err)
 	}
-	var createdFields map[string]any
-	if err := json.Unmarshal(raw, &createdFields); err != nil {
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO cards (deck_id, word, translation, pos, example, example_highlight)
+		SELECT id, 'alpha', 'альфа', 'noun', 'Alpha.', 'Alpha' FROM decks WHERE slug = 'default'
+	`); err != nil {
 		t.Fatal(err)
 	}
-	if createdFields["posRu"] != "существительное" {
-		t.Fatalf("posRu = %v", createdFields["posRu"])
+	if err := store.Reload(ctx, repo, MarshalCardList); err != nil {
+		t.Fatal(err)
 	}
-	got, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
-	if got.StatusCode != http.StatusOK {
-		t.Fatalf("get created %d: %s", got.StatusCode, raw)
+
+	res, raw := do(t, http.MethodGet, "/api/v1/cards?limit=1000&offset=0", nil)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("list %d: %s", res.StatusCode, raw)
 	}
-	again, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, body)
-	if again.StatusCode != http.StatusConflict {
-		t.Fatalf("dup %d: %s", again.StatusCode, raw)
+	if res.Header.Get("Vary") != "Accept-Encoding" {
+		t.Fatalf("vary = %q", res.Header.Get("Vary"))
 	}
-	var env errEnv
-	if err := json.Unmarshal(raw, &env); err != nil || env.Error.Code != "conflict" {
-		t.Fatalf("envelope %v %s", err, raw)
+	limit, offset := 1000, 0
+	list, err := catalog_service.New(catalog_postgres_repository.New(pool)).ListCards(ctx, &limit, &offset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := MarshalCardList(list.Items, list.Total, list.Limit, list.Offset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(raw) != string(want) {
+		t.Fatalf("snapshot != database\n%s\n%s", raw, want)
+	}
+	etag := res.Header.Get("ETag")
+	if etag == "" || !strings.HasPrefix(etag, `W/"`) {
+		t.Fatalf("etag = %q", etag)
 	}
 }
 
-func TestPatchVersion(t *testing.T) {
-	word := fmt.Sprintf("patch-%d", time.Now().UnixNano())
-	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
-		"word": word, "translation": "старый", "pos": "verb",
-	})
-	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("create %d: %s", res.StatusCode, raw)
-	}
-	var created cardBody
-	if err := json.Unmarshal(raw, &created); err != nil {
-		t.Fatal(err)
-	}
+func TestListCardsClientClosed(t *testing.T) {
+	core, logs := observer.New(zapcore.DebugLevel)
+	log := &core_logger.Logger{Logger: zap.New(core)}
+	h := New(catalog_snapshot.New())
 
-	missing, raw := do(t, http.MethodPatch, fmt.Sprintf("/api/v1/admin/cards/%d", created.ID), adminToken, map[string]string{
-		"translation": "нет версии",
-	})
-	if missing.StatusCode != http.StatusBadRequest {
-		t.Fatalf("missing version %d: %s", missing.StatusCode, raw)
+	for _, tc := range []struct {
+		name   string
+		cancel func(context.Context) (context.Context, context.CancelFunc)
+		status int
+	}{
+		{name: "canceled", cancel: func(ctx context.Context) (context.Context, context.CancelFunc) {
+			ctx, cancel := context.WithCancel(ctx)
+			cancel()
+			return ctx, cancel
+		}, status: 499},
+		{name: "timeout", cancel: func(ctx context.Context) (context.Context, context.CancelFunc) {
+			return context.WithDeadline(ctx, time.Now().Add(-time.Second))
+		}, status: http.StatusGatewayTimeout},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := tc.cancel(context.Background())
+			defer cancel()
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/cards?limit=1000", nil).WithContext(core_logger.ToContext(ctx, log))
+			req.Header.Set("X-Request-ID", "closed")
+			rec := httptest.NewRecorder()
+			h.ListCards(rec, req)
+			if rec.Code != tc.status {
+				t.Fatalf("status = %d body %s", rec.Code, rec.Body.String())
+			}
+			if tc.status == 499 && rec.Body.Len() != 0 {
+				t.Fatalf("body = %s", rec.Body.String())
+			}
+		})
 	}
-
-	stale, raw := do(t, http.MethodPatch, fmt.Sprintf("/api/v1/admin/cards/%d", created.ID), adminToken, map[string]any{
-		"version": 0, "translation": "новый",
-	})
-	if stale.StatusCode != http.StatusConflict {
-		t.Fatalf("stale %d: %s", stale.StatusCode, raw)
-	}
-	got, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
-	var card cardBody
-	if err := json.Unmarshal(raw, &card); err != nil {
-		t.Fatal(err)
-	}
-	if got.StatusCode != http.StatusOK || card.Translation != "старый" {
-		t.Fatalf("translation changed: %d %s", got.StatusCode, raw)
+	for _, entry := range logs.All() {
+		if entry.Level >= zapcore.ErrorLevel {
+			t.Fatalf("error log: %s", entry.Message)
+		}
 	}
 }
 
-func TestDeleteAndLimit(t *testing.T) {
-	word := fmt.Sprintf("del-%d", time.Now().UnixNano())
-	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
-		"word": word, "translation": "удалить", "pos": "adv",
-	})
-	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("create %d: %s", res.StatusCode, raw)
-	}
-	var created cardBody
-	if err := json.Unmarshal(raw, &created); err != nil {
-		t.Fatal(err)
-	}
-	del, raw := do(t, http.MethodDelete, fmt.Sprintf("/api/v1/admin/cards/%d", created.ID), adminToken, nil)
-	if del.StatusCode != http.StatusNoContent {
-		t.Fatalf("delete %d: %s", del.StatusCode, raw)
-	}
-	got, raw := do(t, http.MethodGet, fmt.Sprintf("/api/v1/cards/%d", created.ID), "", nil)
-	if got.StatusCode != http.StatusNotFound {
-		t.Fatalf("get deleted %d: %s", got.StatusCode, raw)
-	}
-	for _, query := range []string{"limit=0", "limit=-1", "limit=101"} {
-		lim, raw := do(t, http.MethodGet, "/api/v1/cards?"+query, "", nil)
+func TestLimit(t *testing.T) {
+	for _, query := range []string{"limit=0", "limit=-1", "limit=1001"} {
+		lim, raw := do(t, http.MethodGet, "/api/v1/cards?"+query, nil)
 		if lim.StatusCode != http.StatusBadRequest {
 			t.Fatalf("%s status %d: %s", query, lim.StatusCode, raw)
 		}
@@ -296,33 +363,9 @@ func TestDeleteAndLimit(t *testing.T) {
 		if err := json.Unmarshal(raw, &env); err != nil {
 			t.Fatal(err)
 		}
-		if env.Error.Code != "invalid_argument" || env.Error.Message != "limit "+queryValue(query)+" must be from 1 to 100" {
+		_, value, _ := strings.Cut(query, "=")
+		if env.Error.Code != "invalid_argument" || env.Error.Message != "limit "+value+" must be from 1 to 1000" {
 			t.Fatalf("%s envelope = %+v", query, env.Error)
 		}
-	}
-}
-
-func queryValue(query string) string {
-	_, value, _ := strings.Cut(query, "=")
-	return value
-}
-
-func TestCreateValidationMessage(t *testing.T) {
-	res, raw := do(t, http.MethodPost, "/api/v1/admin/cards", adminToken, map[string]string{
-		"word":             "persist",
-		"translation":      "перевод",
-		"pos":              "verb",
-		"example":          "If you persist, the words stick.",
-		"exampleHighlight": "missing",
-	})
-	if res.StatusCode != http.StatusBadRequest {
-		t.Fatalf("create %d: %s", res.StatusCode, raw)
-	}
-	var env errEnv
-	if err := json.Unmarshal(raw, &env); err != nil {
-		t.Fatal(err)
-	}
-	if env.Error.Code != "invalid_argument" || env.Error.Message != "exampleHighlight is not in example" {
-		t.Fatalf("envelope = %+v", env.Error)
 	}
 }

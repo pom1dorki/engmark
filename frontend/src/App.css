@@ -389,8 +389,7 @@
     width: var(--blob-size);
     height: var(--blob-size);
     border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in srgb, var(--glow-b) 17%, transparent), transparent 68%);
-    filter: blur(6px);
+    background: radial-gradient(circle, color-mix(in srgb, var(--glow-b) 10%, transparent) 0%, color-mix(in srgb, var(--glow-b) 4%, transparent) 42%, transparent 74%);
     pointer-events: none;
   }
 
@@ -617,18 +616,6 @@
   .card__next:active { transform: translateY(1px) scale(.985); }
 
   .card__next--plain::after { display: none; }
-
-  .card__hint {
-    flex: 1;
-    color: var(--soft);
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    line-height: 1.4;
-    text-align: right;
-  }
-
-  .card__hint--touch { display: none; }
 
   .card.is-empty .card__head,
   .card.is-empty .card__grid,
@@ -893,13 +880,6 @@
     box-shadow: 2px 2px 0 var(--card-border);
   }
 
-  html[data-theme-family="alt"] .card__hint {
-    font-family: var(--font-mono);
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-
   @media (max-width: 720px) {
     .page { justify-content: flex-start; padding-top: max(18px, env(safe-area-inset-top)); }
     .page__header { align-items: flex-start; margin-bottom: 14px; }
@@ -908,9 +888,6 @@
   }
 
   @media (hover: none) {
-    .card__hint--keyboard { display: none; }
-    .card__hint--touch { display: block; }
-
     .page__counter,
     .theme-switch,
     .chips__item {
@@ -933,7 +910,6 @@
     .card__speak { width: 48px; height: 48px; border-radius: 13px; }
     .card__actions { flex-direction: column; align-items: stretch; }
     .card__next { width: 100%; }
-    .card__hint { text-align: center; }
   }
 
   @media (max-width: 380px) {
@@ -956,5 +932,21 @@
       animation-duration: .01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: .01ms !important;
+    }
+
+    .card.is-fade,
+    html[data-theme-family="alt"] .card.is-fade {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce), (update: slow) {
+    .page__counter,
+    .theme-switch,
+    .card,
+    .chips__item,
+    html[data-theme-family="alt"] .card {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
   }

@@ -2,13 +2,13 @@ CREATE TABLE decks (
     id         BIGSERIAL PRIMARY KEY,
     slug       TEXT        NOT NULL,
     title      TEXT        NOT NULL,
-    -- admin: catalog shipped with the app; make import replaces its cards.
-    -- user: a person's deck; import does not touch it.
     kind       TEXT        NOT NULL DEFAULT 'user',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT decks_slug_key UNIQUE (slug),
     CONSTRAINT decks_kind_check CHECK (kind IN ('admin', 'user'))
 );
+
+CREATE UNIQUE INDEX decks_single_admin ON decks ((kind)) WHERE kind = 'admin';
 
 CREATE TABLE cards (
     id                   BIGSERIAL PRIMARY KEY,
@@ -33,7 +33,11 @@ CREATE TABLE cards (
 CREATE UNIQUE INDEX cards_deck_word_pos_translation_uidx
     ON cards (deck_id, lower(word), pos, translation);
 
-CREATE INDEX cards_word_lower_idx ON cards (lower(word));
+CREATE TABLE catalog_meta (
+    deck_id       BIGINT PRIMARY KEY REFERENCES decks (id) ON DELETE CASCADE,
+    source_sha256 TEXT        NOT NULL,
+    synced_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 INSERT INTO decks (slug, title, kind)
 VALUES ('default', 'Default', 'admin');

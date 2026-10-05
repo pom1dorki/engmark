@@ -57,9 +57,6 @@ func Read(path string) ([]catalog_domain.Card, error) {
 			ExampleHighlight:   entry.ExampleHighlight,
 			ExampleTranslation: entry.ExampleTranslation,
 		}
-		if err := card.Validate(); err != nil {
-			return nil, fmt.Errorf("card %d: %w", i+1, err)
-		}
 		cards[i] = card
 	}
 	return cards, nil

@@ -5,40 +5,42 @@ import (
 	"testing"
 )
 
-func TestSwaggerDefaultsOn(t *testing.T) {
+func TestHTTPConfigStaticDir(t *testing.T) {
 	t.Setenv("HTTP_ADDR", ":5050")
-	t.Setenv("HTTP_ALLOWED_ORIGINS", "http://localhost:5173")
-	t.Setenv("HTTP_SHUTDOWN_TIMEOUT", "30s")
-	withoutEnv(t, "HTTP_SWAGGER")
 	withoutEnv(t, "HTTP_STATIC_DIR")
 
 	cfg, err := NewConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !cfg.Swagger {
-		t.Fatal("swagger default is off")
-	}
 	if cfg.StaticDir != "" {
+		t.Fatalf("static dir = %q", cfg.StaticDir)
+	}
+
+	t.Setenv("HTTP_STATIC_DIR", "/srv/engmark")
+	cfg, err = NewConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.StaticDir != "/srv/engmark" {
 		t.Fatalf("static dir = %q", cfg.StaticDir)
 	}
 }
 
-func TestSwaggerCanBeDisabled(t *testing.T) {
-	t.Setenv("HTTP_ADDR", ":8080")
-	t.Setenv("HTTP_ALLOWED_ORIGINS", "https://words.example.com")
-	t.Setenv("HTTP_SWAGGER", "false")
-	t.Setenv("HTTP_STATIC_DIR", "/srv/engmark")
-
+func TestHTTPTimeoutDefaults(t *testing.T) {
+	t.Setenv("HTTP_ADDR", ":5050")
+	for _, key := range []string{"HTTP_READ_HEADER_TIMEOUT", "HTTP_READ_TIMEOUT", "HTTP_WRITE_TIMEOUT", "HTTP_IDLE_TIMEOUT", "HTTP_MAX_HEADER_BYTES"} {
+		withoutEnv(t, key)
+	}
 	cfg, err := NewConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Swagger {
-		t.Fatal("swagger stayed on")
+	if cfg.ReadHeaderTimeout != readHeaderTimeout || cfg.ReadTimeout != readTimeout || cfg.WriteTimeout != writeTimeout || cfg.IdleTimeout != idleTimeout {
+		t.Fatalf("timeouts = %+v", cfg)
 	}
-	if cfg.StaticDir != "/srv/engmark" {
-		t.Fatalf("static dir = %q", cfg.StaticDir)
+	if cfg.MaxHeaderBytes != maxHeaderBytes {
+		t.Fatalf("max header bytes = %d", cfg.MaxHeaderBytes)
 	}
 }
 

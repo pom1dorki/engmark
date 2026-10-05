@@ -17,22 +17,53 @@ type SavedProgress = {
 
 const progressKey = "ew-progress"
 
-function readSaved(ids: number[]): SavedProgress | null {
+function isCatalogOrder(order: number[], ids: number[]) {
+  return order.length === ids.length && order.every((id, i) => id === ids[i])
+}
+
+function reconcile(data: SavedProgress, ids: number[]): { order: number[]; index: number } | null {
+  if (!Array.isArray(data.order)) return null
+  if (!Number.isInteger(data.index) || data.index < 0 || data.index >= data.order.length) return null
+  if (isCatalogOrder(data.order, ids)) return null
+
+  const idSet = new Set(ids)
+  const seen = new Set<number>()
+  const kept: number[] = []
+  let removedBefore = 0
+  for (let i = 0; i < data.order.length; i += 1) {
+    const id = data.order[i]
+    if (!Number.isInteger(id) || seen.has(id)) return null
+    seen.add(id)
+    if (!idSet.has(id)) {
+      if (i < data.index) removedBefore += 1
+      continue
+    }
+    kept.push(id)
+  }
+
+  let index = data.index - removedBefore
+  if (index < 0) index = 0
+  if (index > kept.length) index = kept.length
+
+  const prefixEnd = index < kept.length ? index + 1 : kept.length
+  const prefix = kept.slice(0, prefixEnd)
+  const upcoming = kept.slice(prefixEnd)
+  const keptSet = new Set(kept)
+  const fresh = shuffleCards(ids.filter((id) => !keptSet.has(id)))
+  const slot = Math.floor(Math.random() * (upcoming.length + 1))
+  const order = prefix.concat(upcoming.slice(0, slot), fresh, upcoming.slice(slot))
+  if (order.length === 0) return null
+  if (index >= order.length) index = 0
+  return { order, index }
+}
+
+function readSaved(ids: number[]): { order: number[]; index: number } | null {
   try {
     const raw = localStorage.getItem(progressKey)
     if (!raw) return null
     const data = JSON.parse(raw) as SavedProgress
-    if (!data || data.wordsLen !== ids.length || !Array.isArray(data.order)) return null
-    if (!Number.isInteger(data.index) || data.index < 0 || data.index >= ids.length) return null
-    const seen = new Set<number>()
-    for (const id of data.order) {
-      if (!Number.isInteger(id) || !ids.includes(id) || seen.has(id)) return null
-      seen.add(id)
-    }
-    if (seen.size !== ids.length) return null
-    // A saved copy of the catalog order is the sequence the screen used to follow.
-    if (data.order.every((id, i) => id === ids[i])) return null
-    return data
+    if (!data) return null
+    return reconcile(data, ids)
   } catch {
     return null
   }
@@ -52,7 +83,7 @@ export function saveProgress(index: number, ids: number[]) {
   try {
     localStorage.setItem(progressKey, JSON.stringify({ index, order: ids, wordsLen: ids.length }))
   } catch {
-    // Private mode can reject storage. The deck still works for this visit.
+    return
   }
 }
 

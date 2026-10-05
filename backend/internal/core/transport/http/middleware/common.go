@@ -1,6 +1,7 @@
 package core_http_middleware
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -15,31 +16,6 @@ const (
 	requestIDHeader = "X-Request-ID"
 	maxBodyBytes    = 32 << 10
 )
-
-func CORS(allowedOriginsList []string) Middleware {
-	allowed := make(map[string]struct{}, len(allowedOriginsList))
-	for _, origin := range allowedOriginsList {
-		allowed[origin] = struct{}{}
-	}
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			origin := r.Header.Get("Origin")
-			if _, ok := allowed[origin]; ok {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			}
-
-			if r.Method == http.MethodOptions {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 func RequestID() Middleware {
 	return func(next http.Handler) http.Handler {
@@ -77,13 +53,24 @@ func Trace() Middleware {
 
 			log.Debug("incoming HTTP request", zap.String("method", r.Method))
 			next.ServeHTTP(rw, r)
-			log.Info(
-				"HTTP request",
+
+			status := rw.GetStatusCode()
+			fields := []zap.Field{
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
-				zap.Int("status", rw.GetStatusCode()),
+				zap.Int("status", status),
+				zap.Int("bytes", rw.Written()),
 				zap.Duration("latency", time.Since(started)),
-			)
+			}
+			if r.URL.Path == "/healthz" || r.URL.Path == "/readyz" {
+				if status >= 400 {
+					log.Warn("HTTP request", fields...)
+					return
+				}
+				log.Debug("HTTP request", fields...)
+				return
+			}
+			log.Info("HTTP request", fields...)
 		})
 	}
 }
@@ -96,9 +83,14 @@ func Panic() Middleware {
 			responseHandler := core_http_response.NewHTTPResponseHandler(log, w, requestID)
 
 			defer func() {
-				if p := recover(); p != nil {
-					responseHandler.PanicResponse(p, "during handle HTTP request got unexpected panic")
+				p := recover()
+				if p == nil {
+					return
 				}
+				if err, ok := p.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+					panic(p)
+				}
+				responseHandler.PanicResponse(p, "during handle HTTP request got unexpected panic")
 			}()
 
 			next.ServeHTTP(w, r)

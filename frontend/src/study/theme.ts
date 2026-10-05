@@ -1,5 +1,3 @@
-// First paint uses the same list and colors in index.html, before this module loads.
-
 export const themes = ["dark", "light", "sepia", "alt-dark"] as const
 export type Theme = (typeof themes)[number]
 
@@ -34,6 +32,6 @@ export function applyTheme(theme: Theme) {
   try {
     localStorage.setItem(storageKey, theme)
   } catch {
-    // Theme still applies for this visit.
+    return
   }
 }

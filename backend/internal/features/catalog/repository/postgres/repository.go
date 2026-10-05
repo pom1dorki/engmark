@@ -1,7 +1,16 @@
 package catalog_postgres_repository
 
 import (
-	core_postgres_pool "github.com/pom1dorki/engmark/internal/core/repository/postgres/pool"
+	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	core_postgres "github.com/pom1dorki/engmark/internal/core/postgres"
+)
+
+const (
+	queryTimeout = 10 * time.Second
+	syncTimeout  = 60 * time.Second
 )
 
 const cardColumns = `
@@ -23,9 +32,14 @@ const cardColumns = `
 	updated_at`
 
 type Repository struct {
-	pool core_postgres_pool.Pool
+	db   core_postgres.DB
+	pool *pgxpool.Pool
 }
 
-func New(pool core_postgres_pool.Pool) *Repository {
-	return &Repository{pool: pool}
+func New(pool *pgxpool.Pool) *Repository {
+	return &Repository{db: pool, pool: pool}
+}
+
+func (r *Repository) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, queryTimeout)
 }

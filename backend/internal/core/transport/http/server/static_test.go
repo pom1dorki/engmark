@@ -21,6 +21,9 @@ func TestStaticFiles(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "assets", "app.js"), []byte("js"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(dir, "favicon.svg"), []byte("<svg/>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	log, err := core_logger.NewLogger(core_logger.Config{Level: "error"})
 	if err != nil {
@@ -51,6 +54,22 @@ func TestStaticFiles(t *testing.T) {
 	}
 	if index.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatal("missing nosniff")
+	}
+
+	icon := requestStatic(t, server, http.MethodGet, "/favicon.svg")
+	if icon.Code != http.StatusOK || icon.Body.String() != "<svg/>" {
+		t.Fatalf("icon = %d %q", icon.Code, icon.Body.String())
+	}
+	if icon.Header().Get("Cache-Control") != "public, max-age=86400" {
+		t.Fatalf("icon cache = %q", icon.Header().Get("Cache-Control"))
+	}
+	moved := requestStatic(t, server, http.MethodGet, "/index.html")
+	if moved.Code != http.StatusMovedPermanently || moved.Header().Get("Location") != "/" {
+		t.Fatalf("index.html = %d %q", moved.Code, moved.Header().Get("Location"))
+	}
+	escape := requestStatic(t, server, http.MethodGet, "/assets/../index.html")
+	if escape.Body.String() == "study" && escape.Code == http.StatusOK {
+		t.Fatal("asset path escaped the assets directory")
 	}
 
 	asset := requestStatic(t, server, http.MethodGet, "/assets/app.js")

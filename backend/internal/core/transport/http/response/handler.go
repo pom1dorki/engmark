@@ -2,7 +2,6 @@ package core_http_response
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	core_logger "github.com/pom1dorki/engmark/internal/core/logger"
@@ -20,7 +19,7 @@ func NewHTTPResponseHandler(log *core_logger.Logger, rw http.ResponseWriter, req
 }
 
 func (h *HTTPResponseHandler) JSONResponse(body any, statusCode int) {
-	h.rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	setJSONHeaders(h.rw.Header())
 	h.rw.WriteHeader(statusCode)
 	if err := json.NewEncoder(h.rw).Encode(body); err != nil {
 		h.log.Error("write HTTP response", zap.Error(err))
@@ -33,17 +32,24 @@ func (h *HTTPResponseHandler) NoContentResponse() {
 
 func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 	status, code := mapError(err)
-
-	logFunc := h.log.Warn
 	clientMsg := clientErrorMessage(err, msg, status)
+	fields := []zap.Field{zap.Error(err)}
+
 	switch status {
+	case statusClientClosedRequest:
+		h.log.Debug(msg, fields...)
+		h.rw.WriteHeader(status)
+		return
 	case http.StatusNotFound:
-		logFunc = h.log.Debug
+		h.log.Debug(msg, fields...)
+	case http.StatusGatewayTimeout:
+		h.log.Warn(msg, fields...)
 	case http.StatusInternalServerError:
-		logFunc = h.log.Error
+		h.log.Error(msg, fields...)
+	default:
+		h.log.Warn(msg, fields...)
 	}
 
-	logFunc(msg, zap.Error(err), zap.String("request_id", h.requestID))
 	h.JSONResponse(ErrorEnvelope{
 		Error:     ErrorBody{Code: code, Message: clientMsg},
 		RequestID: h.requestID,
@@ -51,6 +57,26 @@ func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 }
 
 func (h *HTTPResponseHandler) PanicResponse(p any, msg string) {
-	err := fmt.Errorf("unexpected panic: %v", p)
-	h.ErrorResponse(err, msg)
+	h.log.Error(msg, zap.Any("panic", p), zap.Stack("stack"))
+	if headersSent(h.rw) {
+		return
+	}
+	h.JSONResponse(ErrorEnvelope{
+		Error:     ErrorBody{Code: CodeInternal, Message: "internal error"},
+		RequestID: h.requestID,
+	}, http.StatusInternalServerError)
+}
+
+func headersSent(w http.ResponseWriter) bool {
+	for w != nil {
+		if hw, ok := w.(interface{ WroteHeader() bool }); ok {
+			return hw.WroteHeader()
+		}
+		unw, ok := w.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			return false
+		}
+		w = unw.Unwrap()
+	}
+	return false
 }

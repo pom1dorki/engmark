@@ -1,2 +1,3 @@
+DROP TABLE IF EXISTS catalog_meta;
 DROP TABLE IF EXISTS cards;
 DROP TABLE IF EXISTS decks;

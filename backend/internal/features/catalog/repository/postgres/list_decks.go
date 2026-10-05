@@ -5,18 +5,18 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
-	core_postgres_pool "github.com/pom1dorki/engmark/internal/core/repository/postgres/pool"
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
 )
 
 const deckColumns = `id, slug, title, kind, created_at`
 
 func (r *Repository) ListDecks(ctx context.Context) ([]catalog_domain.Deck, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	ctx, cancel := r.withTimeout(ctx)
 	defer cancel()
 
-	rows, err := r.pool.Query(ctx, `SELECT `+deckColumns+` FROM decks ORDER BY id ASC`)
+	rows, err := r.db.Query(ctx, `SELECT `+deckColumns+` FROM decks ORDER BY id ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("list decks: %w", err)
 	}
@@ -37,12 +37,12 @@ func (r *Repository) ListDecks(ctx context.Context) ([]catalog_domain.Deck, erro
 }
 
 func (r *Repository) GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	ctx, cancel := r.withTimeout(ctx)
 	defer cancel()
 
-	deck, err := scanDeck(r.pool.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE id = $1`, id))
+	deck, err := scanDeck(r.db.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE id = $1`, id))
 	if err != nil {
-		if errors.Is(err, core_postgres_pool.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog_domain.Deck{}, fmt.Errorf("deck %d: %w", id, core_errors.ErrNotFound)
 		}
 		return catalog_domain.Deck{}, err
@@ -51,12 +51,12 @@ func (r *Repository) GetDeck(ctx context.Context, id int64) (catalog_domain.Deck
 }
 
 func (r *Repository) GetDeckBySlug(ctx context.Context, slug string) (catalog_domain.Deck, error) {
-	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
+	ctx, cancel := r.withTimeout(ctx)
 	defer cancel()
 
-	deck, err := scanDeck(r.pool.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE slug = $1`, slug))
+	deck, err := scanDeck(r.db.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE slug = $1`, slug))
 	if err != nil {
-		if errors.Is(err, core_postgres_pool.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog_domain.Deck{}, fmt.Errorf("deck %s: %w", slug, core_errors.ErrNotFound)
 		}
 		return catalog_domain.Deck{}, err

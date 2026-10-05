@@ -2,6 +2,7 @@ package core_http_server
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,50 +13,80 @@ func (s *HTTPServer) RegisterStatic(dir string) error {
 	if dir == "" {
 		return nil
 	}
-	index, assets, err := staticHandlers(dir)
+	abs, root, err := staticRoot(dir)
 	if err != nil {
 		return err
 	}
-	// Exact paths only. A catch-all GET / conflicts with /api/v1/ in Go 1.22+.
-	s.mux.Handle("GET /{$}", index)
-	s.mux.Handle("GET /assets/", assets)
+	s.mux.Handle("GET /{$}", indexHandler(root))
+	s.mux.Handle("GET /index.html", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	}))
+	s.mux.Handle("GET /assets/", assetsHandler(root))
+
+	entries, err := os.ReadDir(abs)
+	if err != nil {
+		return fmt.Errorf("static dir: %w", err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "index.html" || name == "assets" || entry.IsDir() || !entry.Type().IsRegular() {
+			continue
+		}
+		fileName := name
+		s.mux.Handle("GET /"+fileName, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			http.ServeFileFS(w, r, root, fileName)
+		}))
+	}
 	return nil
 }
 
-func staticHandlers(dir string) (index, assets http.Handler, err error) {
+func staticRoot(dir string) (string, fs.FS, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("static dir: %w", err)
+		return "", nil, fmt.Errorf("static dir: %w", err)
 	}
 	info, err := os.Stat(abs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("static dir: %w", err)
+		return "", nil, fmt.Errorf("static dir: %w", err)
 	}
 	if !info.IsDir() {
-		return nil, nil, fmt.Errorf("static dir: %s is not a directory", abs)
+		return "", nil, fmt.Errorf("static dir: %s is not a directory", abs)
 	}
-	indexPath := filepath.Join(abs, "index.html")
-	if _, err := os.Stat(indexPath); err != nil {
-		return nil, nil, fmt.Errorf("static dir: %w", err)
+	root := os.DirFS(abs)
+	if _, err := fs.Stat(root, "index.html"); err != nil {
+		return "", nil, fmt.Errorf("static dir: %w", err)
 	}
-	assetsDir := filepath.Join(abs, "assets")
-	info, err = os.Stat(assetsDir)
+	info, err = fs.Stat(root, "assets")
 	if err != nil {
-		return nil, nil, fmt.Errorf("static dir: %w", err)
+		return "", nil, fmt.Errorf("static dir: %w", err)
 	}
 	if !info.IsDir() {
-		return nil, nil, fmt.Errorf("static dir: %s is not a directory", assetsDir)
+		return "", nil, fmt.Errorf("static dir: %s is not a directory", filepath.Join(abs, "assets"))
 	}
+	return abs, root, nil
+}
 
-	files := http.FileServer(http.Dir(assetsDir))
-	index = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func indexHandler(root fs.FS) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFile(w, r, indexPath)
+		http.ServeFileFS(w, r, root, "index.html")
 	})
-	assets = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+}
+
+func assetsHandler(root fs.FS) http.Handler {
+	assets, err := fs.Sub(root, "assets")
+	if err != nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "assets unavailable", http.StatusInternalServerError)
+		})
+	}
+	files := http.FileServerFS(assets)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := strings.TrimPrefix(r.URL.Path, "/assets/")
-		if rel == "" || strings.HasSuffix(rel, "/") {
+		if rel == "" || strings.HasSuffix(rel, "/") || strings.Contains(rel, "..") || strings.Contains(rel, "\\") {
 			http.NotFound(w, r)
 			return
 		}
@@ -63,5 +94,12 @@ func staticHandlers(dir string) (index, assets http.Handler, err error) {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		http.StripPrefix("/assets/", files).ServeHTTP(w, r)
 	})
-	return index, assets, nil
+}
+
+func staticHandlers(dir string) (index, assets http.Handler, err error) {
+	_, root, err := staticRoot(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	return indexHandler(root), assetsHandler(root), nil
 }
