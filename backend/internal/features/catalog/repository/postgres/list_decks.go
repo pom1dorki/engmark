@@ -2,11 +2,8 @@ package catalog_postgres_repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
 )
 
@@ -34,34 +31,6 @@ func (r *Repository) ListDecks(ctx context.Context) ([]catalog_domain.Deck, erro
 		return nil, fmt.Errorf("list decks rows: %w", err)
 	}
 	return decks, nil
-}
-
-func (r *Repository) GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error) {
-	ctx, cancel := r.withTimeout(ctx)
-	defer cancel()
-
-	deck, err := scanDeck(r.db.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE id = $1`, id))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog_domain.Deck{}, fmt.Errorf("deck %d: %w", id, core_errors.ErrNotFound)
-		}
-		return catalog_domain.Deck{}, err
-	}
-	return deck, nil
-}
-
-func (r *Repository) GetDeckBySlug(ctx context.Context, slug string) (catalog_domain.Deck, error) {
-	ctx, cancel := r.withTimeout(ctx)
-	defer cancel()
-
-	deck, err := scanDeck(r.db.QueryRow(ctx, `SELECT `+deckColumns+` FROM decks WHERE slug = $1`, slug))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog_domain.Deck{}, fmt.Errorf("deck %s: %w", slug, core_errors.ErrNotFound)
-		}
-		return catalog_domain.Deck{}, err
-	}
-	return deck, nil
 }
 
 type deckScanner interface {

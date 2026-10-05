@@ -3,11 +3,16 @@ package core_http_server
 import (
 	"fmt"
 	"io/fs"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func init() {
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+}
 
 func (s *HTTPServer) RegisterStatic(dir string) error {
 	if dir == "" {
@@ -29,7 +34,7 @@ func (s *HTTPServer) RegisterStatic(dir string) error {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if name == "index.html" || name == "assets" || entry.IsDir() || !entry.Type().IsRegular() {
+		if name == "index.html" || name == "assets" || name == "csp.txt" || entry.IsDir() || !entry.Type().IsRegular() {
 			continue
 		}
 		fileName := name

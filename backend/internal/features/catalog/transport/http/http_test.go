@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +19,6 @@ import (
 	core_http_middleware "github.com/pom1dorki/engmark/internal/core/transport/http/middleware"
 	core_http_server "github.com/pom1dorki/engmark/internal/core/transport/http/server"
 	catalog_postgres_repository "github.com/pom1dorki/engmark/internal/features/catalog/repository/postgres"
-	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
 	catalog_snapshot "github.com/pom1dorki/engmark/internal/features/catalog/snapshot"
 	"github.com/pom1dorki/engmark/internal/testkit"
 	"go.uber.org/zap"
@@ -33,6 +33,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	if benchWithoutTests() {
+		os.Exit(m.Run())
+	}
 	ctx := context.Background()
 	var cleanupDB func()
 	var err error
@@ -71,6 +74,26 @@ func TestMain(m *testing.M) {
 	srv.Close()
 	cleanupDB()
 	os.Exit(code)
+}
+
+func benchWithoutTests() bool {
+	var run, bench string
+	for _, arg := range os.Args[1:] {
+		switch {
+		case strings.HasPrefix(arg, "-test.bench="):
+			bench = strings.TrimPrefix(arg, "-test.bench=")
+		case strings.HasPrefix(arg, "-test.run="):
+			run = strings.TrimPrefix(arg, "-test.run=")
+		}
+	}
+	if bench == "" || run == "" {
+		return false
+	}
+	match, err := regexp.Compile(run)
+	if err != nil {
+		return false
+	}
+	return !match.MatchString("TestCatalogHTTP")
 }
 
 type cardBody struct {
@@ -294,12 +317,15 @@ func TestSnapshotMatchesDatabase(t *testing.T) {
 	if res.Header.Get("Vary") != "Accept-Encoding" {
 		t.Fatalf("vary = %q", res.Header.Get("Vary"))
 	}
-	limit, offset := 1000, 0
-	list, err := catalog_service.New(catalog_postgres_repository.New(pool)).ListCards(ctx, &limit, &offset)
+	deck, err := repo.GetAdminDeck(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := MarshalCardList(list.Items, list.Total, list.Limit, list.Offset)
+	cards, err := repo.ListAllCards(ctx, deck.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := MarshalCardList(cards, len(cards), 1000, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

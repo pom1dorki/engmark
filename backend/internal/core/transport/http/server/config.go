@@ -33,11 +33,3 @@ func NewConfig() (Config, error) {
 	}
 	return config, nil
 }
-
-func NewConfigMust() Config {
-	config, err := NewConfig()
-	if err != nil {
-		panic(fmt.Errorf("get HTTP server config: %w", err))
-	}
-	return config
-}

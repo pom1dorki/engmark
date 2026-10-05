@@ -7,38 +7,6 @@ import (
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
 )
 
-func (r *Repository) ListCards(ctx context.Context, deckID int64, limit, offset int) ([]catalog_domain.Card, error) {
-	ctx, cancel := r.withTimeout(ctx)
-	defer cancel()
-
-	query := `
-		SELECT ` + cardColumns + `
-		FROM cards
-		WHERE deck_id = $1
-		ORDER BY id ASC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := r.db.Query(ctx, query, deckID, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("list cards: %w", err)
-	}
-	defer rows.Close()
-
-	cards := make([]catalog_domain.Card, 0)
-	for rows.Next() {
-		card, err := scanCard(rows)
-		if err != nil {
-			return nil, err
-		}
-		cards = append(cards, card)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list cards rows: %w", err)
-	}
-
-	return cards, nil
-}
-
 func (r *Repository) ListAllCards(ctx context.Context, deckID int64) ([]catalog_domain.Card, error) {
 	ctx, cancel := r.withTimeout(ctx)
 	defer cancel()
@@ -66,18 +34,6 @@ func (r *Repository) ListAllCards(ctx context.Context, deckID int64) ([]catalog_
 		return nil, fmt.Errorf("list cards rows: %w", err)
 	}
 	return cards, nil
-}
-
-func (r *Repository) CountCards(ctx context.Context, deckID int64) (int, error) {
-	ctx, cancel := r.withTimeout(ctx)
-	defer cancel()
-
-	var total int
-	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM cards WHERE deck_id = $1`, deckID).Scan(&total)
-	if err != nil {
-		return 0, fmt.Errorf("count cards: %w", err)
-	}
-	return total, nil
 }
 
 type cardScanner interface {

@@ -71,7 +71,7 @@ web:
 
 host-up:
 	@test -f .env || { echo "Copy .env.example to .env and fill it in."; exit 1; }
-	env -i PATH="$$PATH" HOME="$$HOME" $${DOCKER_HOST:+DOCKER_HOST="$$DOCKER_HOST"} docker compose --env-file .env -f docker-compose.yaml -p engmark-prod --profile host up -d --build --wait
+	env -i PATH="$$PATH" HOME="$$HOME" ENGMARK_VERSION="$$(git describe --tags --always --dirty 2>/dev/null || echo dev)" ENGMARK_REVISION="$$(git rev-parse HEAD 2>/dev/null || echo unknown)" $${DOCKER_HOST:+DOCKER_HOST="$$DOCKER_HOST"} docker compose --env-file .env -f docker-compose.yaml -p engmark-prod --profile host up -d --build --wait
 
 host-down:
 	@test -f .env || { echo "Copy .env.example to .env and fill it in."; exit 1; }

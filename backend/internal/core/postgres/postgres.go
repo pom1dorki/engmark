@@ -135,6 +135,9 @@ func Migrate(databaseURL string) error {
 	}
 	defer m.Close()
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		if errors.Is(err, os.ErrNotExist) || strings.Contains(err.Error(), "no migration found") {
+			return redact(fmt.Errorf("migrate up: database schema is from another build, recreate the database (see README): %w", err), databaseURL, pgxURL)
+		}
 		return redact(fmt.Errorf("migrate up: %w", err), databaseURL, pgxURL)
 	}
 	return nil

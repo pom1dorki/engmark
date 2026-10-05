@@ -31,6 +31,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VERSION: ${ENGMARK_VERSION:-dev}
+        REVISION: ${ENGMARK_REVISION:-unknown}
     environment:
       HTTP_ADDR: ":8080"
       HTTP_STATIC_DIR: /srv/engmark

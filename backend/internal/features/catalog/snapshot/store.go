@@ -8,7 +8,6 @@ import (
 	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
 	core_http_response "github.com/pom1dorki/engmark/internal/core/transport/http/response"
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
-	catalog_service "github.com/pom1dorki/engmark/internal/features/catalog/service"
 )
 
 type MarshalList func(items []catalog_domain.Card, total, limit, offset int) ([]byte, error)
@@ -74,8 +73,8 @@ func (s *Store) Reload(ctx context.Context, repo Loader, marshal MarshalList) er
 			return err
 		}
 		view := &DeckCards{items: cards}
-		if len(cards) <= catalog_service.MaxLimit {
-			body, err := marshal(cards, len(cards), catalog_service.MaxLimit, 0)
+		if len(cards) <= catalog_domain.MaxLimit {
+			body, err := marshal(cards, len(cards), catalog_domain.MaxLimit, 0)
 			if err != nil {
 				return fmt.Errorf("marshal deck %d: %w", deck.ID, err)
 			}
@@ -122,7 +121,7 @@ func (s *Store) list(ctx context.Context, deckID int64, defaultDeck bool, limit,
 		return Page{}, fmt.Errorf("deck %d: %w", deckID, core_errors.ErrNotFound)
 	}
 	total := len(view.items)
-	if off == 0 && lim >= total && lim == catalog_service.MaxLimit && view.full != nil {
+	if off == 0 && lim >= total && lim == catalog_domain.MaxLimit && view.full != nil {
 		return Page{
 			Items:  view.items,
 			Total:  total,
@@ -176,10 +175,10 @@ func (s *Store) ListDecks(ctx context.Context) ([]catalog_domain.Deck, error) {
 }
 
 func normalize(limit, offset *int) (int, int, error) {
-	lim := 50
+	lim := catalog_domain.DefaultLimit
 	if limit != nil {
-		if *limit < 1 || *limit > catalog_service.MaxLimit {
-			return 0, 0, fmt.Errorf("limit %d must be from 1 to %d: %w", *limit, catalog_service.MaxLimit, core_errors.ErrInvalidArgument)
+		if *limit < 1 || *limit > catalog_domain.MaxLimit {
+			return 0, 0, fmt.Errorf("limit %d must be from 1 to %d: %w", *limit, catalog_domain.MaxLimit, core_errors.ErrInvalidArgument)
 		}
 		lim = *limit
 	}

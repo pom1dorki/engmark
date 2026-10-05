@@ -345,12 +345,16 @@ func sameStored(a, b storedCard) bool {
 
 func catalogJSON(t *testing.T, ctx context.Context) string {
 	t.Helper()
-	limit, offset := 1000, 0
-	list, err := New(catalog_postgres_repository.New(testPool)).ListCards(ctx, &limit, &offset)
+	repo := catalog_postgres_repository.New(testPool)
+	deck, err := repo.GetAdminDeck(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := json.Marshal(list)
+	cards, err := repo.ListAllCards(ctx, deck.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(cards)
 	if err != nil {
 		t.Fatal(err)
 	}
