@@ -1,5 +1,23 @@
-# ENGMARK_SITE is a domain name (HTTPS) or :80 (plain HTTP).
 {$ENGMARK_SITE::80} {
-	encode gzip
-	reverse_proxy app:8080
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=300"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-sS8Q2e9pCdRRKUqDkds4JGluTrnrKsQ/Pr68D6gFRdU='; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'"
+		-Server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+
+	reverse_proxy app:8080 {
+		health_uri /readyz
+		health_interval 10s
+	}
 }

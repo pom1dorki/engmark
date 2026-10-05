@@ -55,7 +55,7 @@ func PosLabel(pos string) string {
 	}
 }
 
-func (c *Card) Validate() error {
+func (c *Card) Normalize() {
 	c.Word = strings.TrimSpace(c.Word)
 	c.Translation = strings.TrimSpace(c.Translation)
 	c.Pos = strings.TrimSpace(c.Pos)
@@ -67,9 +67,14 @@ func (c *Card) Validate() error {
 	c.Example = strings.TrimSpace(c.Example)
 	c.ExampleHighlight = strings.TrimSpace(c.ExampleHighlight)
 	c.ExampleTranslation = strings.TrimSpace(c.ExampleTranslation)
+}
 
+func (c *Card) Validate() error {
 	if c.Word == "" || c.Translation == "" || c.Pos == "" {
 		return fmt.Errorf("word, translation and pos are required: %w", core_errors.ErrInvalidArgument)
+	}
+	if !englishWord(c.Word) {
+		return fmt.Errorf("word must be English letters: %w", core_errors.ErrInvalidArgument)
 	}
 
 	switch c.Pos {
@@ -101,4 +106,29 @@ func (c *Card) Validate() error {
 	}
 
 	return nil
+}
+
+func englishWord(word string) bool {
+	letter := false
+	prevSpace := true
+	for _, r := range word {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z':
+			letter = true
+			prevSpace = false
+		case r == '\'' || r == '-':
+			if prevSpace {
+				return false
+			}
+			prevSpace = false
+		case r == ' ':
+			if prevSpace {
+				return false
+			}
+			prevSpace = true
+		default:
+			return false
+		}
+	}
+	return letter && !prevSpace
 }

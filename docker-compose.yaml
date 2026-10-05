@@ -1,48 +1,16 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
-  # make start. Postgres is published on 127.0.0.1:5433.
-  engmark-postgres:
-    profiles: [dev]
-    image: postgres:18.4-bookworm
-    container_name: engmark-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "127.0.0.1:5433:5432"
-    volumes:
-      - ./out/pgdata:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
-    restart: unless-stopped
-
-  engmark-migrate:
-    profiles: [dev]
-    image: migrate/migrate:v4.19.1
-    volumes:
-      - ./backend/migrations:/migrations
-
-  engmark-swagger:
-    profiles: [dev]
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM golang:1.27.1-alpine
-        RUN apk add --no-cache git
-        RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
-        WORKDIR /code
-        ENTRYPOINT ["swag"]
-    working_dir: /code/backend
-    volumes:
-      - .:/code
-
-  # make host-up. Postgres is only on the Docker network.
   postgres:
-    profiles: [host]
     image: postgres:18.4-bookworm
+    logging: *logging
+    mem_limit: 512m
+    shm_size: 128mb
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -58,34 +26,23 @@ services:
 
   app:
     profiles: [host]
+    logging: *logging
+    mem_limit: 256m
     build:
       context: .
       dockerfile: Dockerfile
     environment:
       HTTP_ADDR: ":8080"
-      HTTP_SHUTDOWN_TIMEOUT: 30s
       HTTP_STATIC_DIR: /srv/engmark
-      HTTP_SWAGGER: "false"
-      HTTP_ALLOWED_ORIGINS: ${HTTP_ALLOWED_ORIGINS:?set HTTP_ALLOWED_ORIGINS in .env}
-      # POSTGRES_HOST in .env is the laptop address. The container uses the Docker service.
-      POSTGRES_HOST: ${ENGMARK_DB_HOST:-postgres}
-      POSTGRES_PORT: ${ENGMARK_DB_PORT:-5432}
-      POSTGRES_SSLMODE: ${ENGMARK_DB_SSLMODE:-disable}
-      POSTGRES_SSLROOTCERT: ${POSTGRES_SSLROOTCERT:-}
-      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
-      POSTGRES_TIMEOUT: ${POSTGRES_TIMEOUT:-10s}
-      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env}
+      DATABASE_URL: ${ENGMARK_DATABASE_URL:-postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable}
       LOGGER_LEVEL: ${LOGGER_LEVEL:-info}
-      TIME_ZONE: ${TIME_ZONE:-UTC}
-      MIGRATIONS_PATH: /migrations
-      CARDS_FILE: ${CARDS_FILE-/data/cards.json}
+      LOGGER_FORMAT: json
+      GOMEMLIMIT: 200MiB
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/readyz"]
+      test: ["CMD", "/usr/local/bin/engmark", "ready"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -95,6 +52,7 @@ services:
 
   caddy:
     profiles: [host]
+    logging: *logging
     image: caddy:2-alpine
     environment:
       ENGMARK_SITE: ${ENGMARK_SITE:-:80}

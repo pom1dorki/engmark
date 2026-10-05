@@ -1,6 +1,7 @@
 package core_http_response
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -14,7 +15,12 @@ const (
 	CodeNotFound        = "not_found"
 	CodeConflict        = "conflict"
 	CodeInternal        = "internal"
+	CodeCanceled        = "canceled"
+	CodeTimeout         = "timeout"
+	CodeUnavailable     = "unavailable"
 )
+
+const statusClientClosedRequest = 499
 
 type ErrorBody struct {
 	Code    string `json:"code"`
@@ -37,7 +43,11 @@ func mapError(err error) (status int, code string) {
 	case errors.Is(err, core_errors.ErrConflict):
 		return http.StatusConflict, CodeConflict
 	case errors.Is(err, core_errors.ErrNotReady):
-		return http.StatusServiceUnavailable, "unavailable"
+		return http.StatusServiceUnavailable, CodeUnavailable
+	case errors.Is(err, context.Canceled):
+		return statusClientClosedRequest, CodeCanceled
+	case errors.Is(err, context.DeadlineExceeded):
+		return http.StatusGatewayTimeout, CodeTimeout
 	default:
 		return http.StatusInternalServerError, CodeInternal
 	}

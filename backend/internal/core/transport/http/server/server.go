@@ -41,13 +41,40 @@ func (s *HTTPServer) RegisterRoutes(routes ...Route) {
 	}
 }
 
-func (s *HTTPServer) Run(ctx context.Context) error {
-	mux := core_http_middleware.ChainMiddleware(s.mux, s.middleware...)
-
-	server := &http.Server{
-		Addr:    s.config.Addr,
-		Handler: mux,
+func (s *HTTPServer) httpServer() *http.Server {
+	cfg := s.config.withDefaults()
+	return &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           core_http_middleware.ChainMiddleware(s.mux, s.middleware...),
+		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+		ReadTimeout:       cfg.ReadTimeout,
+		WriteTimeout:      cfg.WriteTimeout,
+		IdleTimeout:       cfg.IdleTimeout,
+		MaxHeaderBytes:    cfg.MaxHeaderBytes,
 	}
+}
+
+func (c Config) withDefaults() Config {
+	if c.ReadHeaderTimeout <= 0 {
+		c.ReadHeaderTimeout = readHeaderTimeout
+	}
+	if c.ReadTimeout <= 0 {
+		c.ReadTimeout = readTimeout
+	}
+	if c.WriteTimeout <= 0 {
+		c.WriteTimeout = writeTimeout
+	}
+	if c.IdleTimeout <= 0 {
+		c.IdleTimeout = idleTimeout
+	}
+	if c.MaxHeaderBytes <= 0 {
+		c.MaxHeaderBytes = maxHeaderBytes
+	}
+	return c
+}
+
+func (s *HTTPServer) Run(ctx context.Context) error {
+	server := s.httpServer()
 
 	ch := make(chan error, 1)
 
@@ -68,7 +95,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		s.log.Warn("shutdown HTTP server...")
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.config.ShutDownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
 		if err := server.Shutdown(shutdownCtx); err != nil {

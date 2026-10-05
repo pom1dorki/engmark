@@ -12,43 +12,93 @@ concurrency:
 jobs:
   api:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
           go-version-file: backend/go.mod
       - run: docker pull postgres:18.4-bookworm
-      - run: make test
+      - run: go install honnef.co/go/tools/cmd/staticcheck@v0.8.1
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.4.0
+      - run: go vet ./...
+        working-directory: backend
+      - run: staticcheck ./...
+        working-directory: backend
+      - run: govulncheck ./...
+        working-directory: backend
+      - run: make test-race
 
   web:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      VITE_API_BASE_URL: http://localhost:5050
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
       - run: npm run build
+        working-directory: frontend
+      - run: npm run check:size
         working-directory: frontend
 
   image:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - run: docker compose -p engmark-prod --profile host config
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - run: docker compose -f docker-compose.yaml -p engmark-prod --profile host config
         env:
           POSTGRES_USER: engmark
           POSTGRES_PASSWORD: changeme
           POSTGRES_DB: engmark
-          ADMIN_TOKEN: ci
-          HTTP_ALLOWED_ORIGINS: http://127.0.0.1
           ENGMARK_SITE: ":80"
-      - run: docker build -t engmark:ci .
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          push: false
+          load: true
+          tags: engmark:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: docker compose -f docker-compose.yaml -p engmark-prod --profile host up -d --build --wait
+        env:
+          POSTGRES_USER: engmark
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: engmark
+          ENGMARK_SITE: ":80"
+      - run: npx playwright test
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1
+      - if: always()
+        run: docker compose -f docker-compose.yaml -p engmark-prod --profile host down --remove-orphans
+        env:
+          POSTGRES_USER: engmark
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: engmark
+          ENGMARK_SITE: ":80"

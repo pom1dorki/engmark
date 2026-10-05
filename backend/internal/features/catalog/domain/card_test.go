@@ -56,6 +56,8 @@ func TestCardValidate(t *testing.T) {
 		{name: "pos adjective", card: func() Card { c := persistCard(); c.Pos = "adjective"; return c }(), wantErr: core_errors.ErrInvalidArgument},
 		{name: "highlight missing", card: func() Card { c := persistCard(); c.ExampleHighlight = "missing"; return c }(), wantErr: core_errors.ErrInvalidArgument},
 		{name: "highlight case", card: func() Card { c := persistCard(); c.ExampleHighlight = "PERSIST"; return c }()},
+		{name: "non ascii word", card: func() Card { c := persistCard(); c.Word = "café"; return c }(), wantErr: core_errors.ErrInvalidArgument},
+		{name: "hyphen and apostrophe", card: func() Card { c := persistCard(); c.Word = "o'clock-in"; return c }()},
 	}
 
 	for _, tt := range tests {
@@ -75,26 +77,23 @@ func TestCardValidate(t *testing.T) {
 	}
 }
 
-func TestApply(t *testing.T) {
+func TestNormalizeThenValidate(t *testing.T) {
 	t.Parallel()
 
-	t.Run("version mismatch", func(t *testing.T) {
-		t.Parallel()
-		_, err := Apply(persistCard(), CardPatch{Version: 0})
-		if !errors.Is(err, core_errors.ErrConflict) {
-			t.Fatalf("Apply() = %v, want ErrConflict", err)
-		}
-	})
-
-	t.Run("empty word", func(t *testing.T) {
-		t.Parallel()
-		empty := ""
-		_, err := Apply(persistCard(), CardPatch{
-			Version: 1,
-			Word:    Nullable[string]{Value: &empty, Set: true},
-		})
-		if !errors.Is(err, core_errors.ErrInvalidArgument) {
-			t.Fatalf("Apply() = %v, want ErrInvalidArgument", err)
-		}
-	})
+	card := persistCard()
+	card.Word = " persist "
+	original := card.Word
+	if err := card.Validate(); err == nil {
+		t.Fatal("Validate trimmed the word")
+	}
+	if card.Word != original {
+		t.Fatalf("Validate mutated the word to %q", card.Word)
+	}
+	card.Normalize()
+	if card.Word != "persist" {
+		t.Fatalf("Normalize word = %q", card.Word)
+	}
+	if err := card.Validate(); err != nil {
+		t.Fatal(err)
+	}
 }

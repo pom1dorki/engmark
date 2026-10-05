@@ -1,16 +1,22 @@
-# Secrets
 .env
 .env.local
 .env.*.local
 *.local
 
-# Build output
 bin/
 out/
+engmark-src.zip
+*.dump
 dist/
 dist-ssr/
 coverage/
 .cache/
+.vite/
+*.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 *.exe
 *.exe~
 *.dll
@@ -20,10 +26,8 @@ coverage/
 *.out
 vendor/
 
-# Dependencies
 node_modules/
 
-# Logs
 logs
 *.log
 npm-debug.log*
@@ -32,7 +36,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Editors
 .DS_Store
 Thumbs.db
 .idea/

@@ -1,0 +1,12 @@
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes: !override
+      - ./out/pgdata:/var/lib/postgresql
+
+  engmark-migrate:
+    profiles: [migrate]
+    image: migrate/migrate:v4.19.1
+    volumes:
+      - ./backend/migrations:/migrations

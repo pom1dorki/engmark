@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	Level string `envconfig:"LEVEL" default:"info"`
+	Level  string `envconfig:"LEVEL" default:"info"`
+	Format string `envconfig:"FORMAT" default:"console"`
 }
 
 func NewConfig() (Config, error) {

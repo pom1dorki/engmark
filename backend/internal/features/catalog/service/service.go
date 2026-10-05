@@ -11,21 +11,16 @@ import (
 const (
 	defaultDeckSlug = "default"
 	defaultLimit    = 50
-	maxLimit        = 100
+	MaxLimit        = 1000
 )
 
 type Repository interface {
 	ListCards(ctx context.Context, deckID int64, limit, offset int) ([]catalog_domain.Card, error)
 	CountCards(ctx context.Context, deckID int64) (int, error)
-	GetCard(ctx context.Context, id int64) (catalog_domain.Card, error)
-	ListDecks(ctx context.Context) ([]catalog_domain.Deck, error)
 	GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error)
 	GetDeckBySlug(ctx context.Context, slug string) (catalog_domain.Deck, error)
 	GetAdminDeck(ctx context.Context) (catalog_domain.Deck, error)
-	ReplaceDeckCards(ctx context.Context, deckID int64, cards []catalog_domain.Card) error
-	CreateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
-	UpdateCard(ctx context.Context, card catalog_domain.Card) (catalog_domain.Card, error)
-	DeleteCard(ctx context.Context, id int64) error
+	ReplaceDeckCards(ctx context.Context, deckID int64, cards []catalog_domain.Card, sourceSHA256 string) error
 }
 
 type CardList struct {
@@ -43,30 +38,13 @@ func New(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) ListDecks(ctx context.Context) ([]catalog_domain.Deck, error) {
-	return s.repo.ListDecks(ctx)
-}
-
-func (s *Service) GetDeck(ctx context.Context, id int64) (catalog_domain.Deck, error) {
-	return s.repo.GetDeck(ctx, id)
-}
-
-func (s *Service) GetCard(ctx context.Context, id int64) (catalog_domain.Card, error) {
-	return s.repo.GetCard(ctx, id)
-}
-
-func (s *Service) ListCards(ctx context.Context, deckID *int64, limit, offset *int) (CardList, error) {
+func (s *Service) ListCards(ctx context.Context, limit, offset *int) (CardList, error) {
 	lim, off, err := normalizePage(limit, offset)
 	if err != nil {
 		return CardList{}, err
 	}
 
-	var deck catalog_domain.Deck
-	if deckID == nil {
-		deck, err = s.repo.GetDeckBySlug(ctx, defaultDeckSlug)
-	} else {
-		deck, err = s.repo.GetDeck(ctx, *deckID)
-	}
+	deck, err := s.repo.GetDeckBySlug(ctx, defaultDeckSlug)
 	if err != nil {
 		return CardList{}, err
 	}
@@ -102,8 +80,8 @@ func (s *Service) listByDeck(ctx context.Context, deckID int64, limit, offset in
 func normalizePage(limit, offset *int) (int, int, error) {
 	lim := defaultLimit
 	if limit != nil {
-		if *limit < 1 || *limit > maxLimit {
-			return 0, 0, fmt.Errorf("limit %d must be from 1 to %d: %w", *limit, maxLimit, core_errors.ErrInvalidArgument)
+		if *limit < 1 || *limit > MaxLimit {
+			return 0, 0, fmt.Errorf("limit %d must be from 1 to %d: %w", *limit, MaxLimit, core_errors.ErrInvalidArgument)
 		}
 		lim = *limit
 	}
