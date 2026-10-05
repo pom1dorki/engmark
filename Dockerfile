@@ -1,4 +1,4 @@
-FROM node:22.18.0-alpine AS web
+FROM node:26.10.0-alpine AS web
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
