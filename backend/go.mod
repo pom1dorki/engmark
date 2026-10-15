@@ -1,6 +1,6 @@
 module github.com/pom1dorki/engmark
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
