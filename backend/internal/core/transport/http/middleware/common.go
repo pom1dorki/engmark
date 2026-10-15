@@ -109,7 +109,7 @@ func LimitBody(limit int64) Middleware {
 				log := core_logger.FromContext(r.Context())
 				requestID := r.Header.Get(requestIDHeader)
 				core_http_response.NewHTTPResponseHandler(log, w, requestID).
-					ErrorResponse(core_errors.ErrInvalidArgument, "request body too large")
+					ErrorResponse(core_errors.ErrPayloadTooLarge, "request body too large")
 				return
 			}
 			r.Body = http.MaxBytesReader(w, r.Body, limit)

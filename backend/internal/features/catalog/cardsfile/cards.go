@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
@@ -60,4 +61,17 @@ func Read(path string) ([]catalog_domain.Card, error) {
 		cards[i] = card
 	}
 	return cards, nil
+}
+
+func Encode(w io.Writer, cards []catalog_domain.CardData) error {
+	if cards == nil {
+		cards = []catalog_domain.CardData{}
+	}
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(cards); err != nil {
+		return fmt.Errorf("encode cards: %w", err)
+	}
+	return nil
 }

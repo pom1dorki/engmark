@@ -26,9 +26,10 @@ func (h *HTTPResponseHandler) JSONResponse(body any, statusCode int) {
 	}
 }
 
+func (h *HTTPResponseHandler) Header() http.Header { return h.rw.Header() }
+
 func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
-	status, code := mapError(err)
-	clientMsg := clientErrorMessage(err, msg, status)
+	status, body := describe(err, msg)
 	fields := []zap.Field{zap.Error(err)}
 
 	switch status {
@@ -36,7 +37,7 @@ func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 		h.log.Debug(msg, fields...)
 		h.rw.WriteHeader(status)
 		return
-	case http.StatusNotFound:
+	case http.StatusNotFound, http.StatusUnauthorized:
 		h.log.Debug(msg, fields...)
 	case http.StatusGatewayTimeout:
 		h.log.Warn(msg, fields...)
@@ -46,10 +47,7 @@ func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
 		h.log.Warn(msg, fields...)
 	}
 
-	h.JSONResponse(ErrorEnvelope{
-		Error:     ErrorBody{Code: code, Message: clientMsg},
-		RequestID: h.requestID,
-	}, status)
+	h.JSONResponse(ErrorEnvelope{Error: body, RequestID: h.requestID}, status)
 }
 
 func (h *HTTPResponseHandler) PanicResponse(p any, msg string) {

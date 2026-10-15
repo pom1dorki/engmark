@@ -1,0 +1,13 @@
+[
+  { "word": "luggage", "pos": "noun", "translation": "багаж", "ipa": "/ˈlʌɡɪdʒ/", "example": "My luggage got lost.", "exampleHighlight": "luggage", "exampleTranslation": "Мой багаж потерялся." },
+  { "word": "board", "pos": "verb", "translation": "садиться (на борт)", "example": "We board at six.", "exampleHighlight": "board" },
+  { "word": "delay", "pos": "noun", "translation": "задержка" },
+  { "word": "departure", "pos": "noun", "translation": "отправление" },
+  { "word": "arrive", "pos": "verb", "translation": "прибывать" },
+  { "word": "check-in", "pos": "noun", "translation": "регистрация" },
+  { "word": "window seat", "pos": "noun", "translation": "место у окна" },
+  { "word": "where", "pos": "adv", "translation": "где, куда" },
+  { "word": "гостиница", "pos": "noun", "translation": "hotel" },
+  { "word": "passport", "pos": "thing", "translation": "паспорт" },
+  { "word": "ticket", "pos": "noun", "translation": "билет", "example": "I lost my pass.", "exampleHighlight": "ticket" }
+]

@@ -27,6 +27,7 @@ func (s *HTTPServer) RegisterStatic(dir string) error {
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	}))
 	s.mux.Handle("GET /assets/", assetsHandler(root))
+	registerAdminPage(s.mux, root)
 
 	entries, err := os.ReadDir(abs)
 	if err != nil {
@@ -34,7 +35,7 @@ func (s *HTTPServer) RegisterStatic(dir string) error {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if name == "index.html" || name == "assets" || name == "csp.txt" || entry.IsDir() || !entry.Type().IsRegular() {
+		if name == "index.html" || name == "admin.html" || name == "assets" || name == "csp.txt" || entry.IsDir() || !entry.Type().IsRegular() {
 			continue
 		}
 		fileName := name
@@ -45,6 +46,27 @@ func (s *HTTPServer) RegisterStatic(dir string) error {
 		}))
 	}
 	return nil
+}
+
+func registerAdminPage(mux *http.ServeMux, root fs.FS) {
+	if _, err := fs.Stat(root, "admin.html"); err != nil {
+		return
+	}
+	page := adminHandler(root)
+	mux.Handle("GET /admin", page)
+	mux.Handle("GET /admin/{path...}", page)
+	mux.Handle("GET /admin.html", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/admin", http.StatusMovedPermanently)
+	}))
+}
+
+func adminHandler(root fs.FS) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		http.ServeFileFS(w, r, root, "admin.html")
+	})
 }
 
 func staticRoot(dir string) (string, fs.FS, error) {

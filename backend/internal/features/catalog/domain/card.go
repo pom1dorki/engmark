@@ -21,6 +21,14 @@ const (
 	maxNote        = 500
 )
 
+const (
+	FieldRequired          = "required"
+	FieldInvalidChars      = "invalid_chars"
+	FieldTooLong           = "too_long"
+	FieldUnsupportedPos    = "unsupported_pos"
+	FieldHighlightNotFound = "highlight_not_found"
+)
+
 type Card struct {
 	ID                 int64
 	DeckID             int64
@@ -36,8 +44,17 @@ type Card struct {
 	Example            string
 	ExampleHighlight   string
 	ExampleTranslation string
+	ArchivedAt         *time.Time
+	CreatedRevision    int64
+	UpdatedRevision    int64
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+}
+
+type FieldError struct {
+	Field   string `json:"field"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
 }
 
 func PosLabel(pos string) string {
@@ -55,6 +72,8 @@ func PosLabel(pos string) string {
 	}
 }
 
+func (c *Card) Archived() bool { return c.ArchivedAt != nil }
+
 func (c *Card) Normalize() {
 	c.Word = strings.TrimSpace(c.Word)
 	c.Translation = strings.TrimSpace(c.Translation)
@@ -69,43 +88,63 @@ func (c *Card) Normalize() {
 	c.ExampleTranslation = strings.TrimSpace(c.ExampleTranslation)
 }
 
-func (c *Card) Validate() error {
-	if c.Word == "" || c.Translation == "" || c.Pos == "" {
-		return fmt.Errorf("word, translation and pos are required: %w", core_errors.ErrInvalidArgument)
+func (c *Card) ValidateFields() []FieldError {
+	var errs []FieldError
+	add := func(field, code, message string) {
+		errs = append(errs, FieldError{Field: field, Code: code, Message: message})
 	}
-	if !englishWord(c.Word) {
-		return fmt.Errorf("word must be English letters: %w", core_errors.ErrInvalidArgument)
+
+	if c.Word == "" {
+		add("word", FieldRequired, "word is required")
+	} else if !englishWord(c.Word) {
+		add("word", FieldInvalidChars, "word must be English letters")
+	} else if utf8.RuneCountInString(c.Word) > maxWord {
+		add("word", FieldTooLong, "word too long")
+	}
+	if c.Translation == "" {
+		add("translation", FieldRequired, "translation is required")
+	} else if utf8.RuneCountInString(c.Translation) > maxTranslation {
+		add("translation", FieldTooLong, "translation too long")
 	}
 
 	switch c.Pos {
+	case "":
+		add("pos", FieldRequired, "pos is required")
 	case PosVerb, PosNoun, PosAdj, PosAdv:
 	default:
-		return fmt.Errorf("unsupported pos %q: %w", c.Pos, core_errors.ErrInvalidArgument)
+		add("pos", FieldUnsupportedPos, fmt.Sprintf("unsupported pos %q", c.Pos))
 	}
 
-	if utf8.RuneCountInString(c.Word) > maxWord {
-		return fmt.Errorf("word too long: %w", core_errors.ErrInvalidArgument)
-	}
-	if utf8.RuneCountInString(c.Translation) > maxTranslation {
-		return fmt.Errorf("translation too long: %w", core_errors.ErrInvalidArgument)
-	}
 	if utf8.RuneCountInString(c.Example) > maxExample {
-		return fmt.Errorf("example too long: %w", core_errors.ErrInvalidArgument)
+		add("example", FieldTooLong, "example too long")
 	}
-
-	for _, note := range []string{c.IPA, c.Pronunciation, c.StressNote, c.Grammar, c.Usage, c.ExampleHighlight, c.ExampleTranslation} {
-		if utf8.RuneCountInString(note) > maxNote {
-			return fmt.Errorf("note too long: %w", core_errors.ErrInvalidArgument)
+	notes := []struct{ field, value string }{
+		{"ipa", c.IPA},
+		{"pronunciation", c.Pronunciation},
+		{"stressNote", c.StressNote},
+		{"grammar", c.Grammar},
+		{"usage", c.Usage},
+		{"exampleHighlight", c.ExampleHighlight},
+		{"exampleTranslation", c.ExampleTranslation},
+	}
+	for _, note := range notes {
+		if utf8.RuneCountInString(note.value) > maxNote {
+			add(note.field, FieldTooLong, "note too long")
 		}
 	}
 
-	if c.ExampleHighlight != "" {
-		if !strings.Contains(strings.ToLower(c.Example), strings.ToLower(c.ExampleHighlight)) {
-			return fmt.Errorf("exampleHighlight is not in example: %w", core_errors.ErrInvalidArgument)
-		}
+	if c.ExampleHighlight != "" && !strings.Contains(strings.ToLower(c.Example), strings.ToLower(c.ExampleHighlight)) {
+		add("exampleHighlight", FieldHighlightNotFound, "exampleHighlight is not in example")
 	}
+	return errs
+}
 
-	return nil
+func (c *Card) Validate() error {
+	errs := c.ValidateFields()
+	if len(errs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", errs[0].Message, core_errors.ErrInvalidArgument)
 }
 
 func englishWord(word string) bool {

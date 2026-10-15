@@ -181,3 +181,59 @@ func requestStatic(t *testing.T, server *HTTPServer, method, path string) *httpt
 	server.Handler().ServeHTTP(rec, httptest.NewRequest(method, path, nil))
 	return rec
 }
+
+func TestStaticAdminPage(t *testing.T) {
+	log, err := core_logger.NewLogger(core_logger.Config{Level: "error"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	build := func(t *testing.T, withAdmin bool) *HTTPServer {
+		dir := filepath.Join(t.TempDir(), "dist")
+		if err := os.MkdirAll(filepath.Join(dir, "assets"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		files := map[string]string{"index.html": "study"}
+		if withAdmin {
+			files["admin.html"] = "admin"
+		}
+		for name, body := range files {
+			if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		server := NewHTTPServer(Config{Addr: "127.0.0.1:0"}, log)
+		if err := server.RegisterStatic(dir); err != nil {
+			t.Fatal(err)
+		}
+		return server
+	}
+
+	server := build(t, true)
+	for _, path := range []string{"/admin", "/admin/", "/admin/words", "/admin/words/42?tab=history"} {
+		res := requestStatic(t, server, http.MethodGet, path)
+		if res.Code != http.StatusOK || res.Body.String() != "admin" {
+			t.Fatalf("%s = %d %q", path, res.Code, res.Body.String())
+		}
+		if res.Header().Get("Cache-Control") != "no-cache" || res.Header().Get("X-Content-Type-Options") != "nosniff" {
+			t.Fatalf("%s headers = %v", path, res.Header())
+		}
+	}
+	if res := requestStatic(t, server, http.MethodGet, "/"); res.Body.String() != "study" {
+		t.Fatalf("study page = %q", res.Body.String())
+	}
+	moved := requestStatic(t, server, http.MethodGet, "/admin.html")
+	if moved.Code != http.StatusMovedPermanently || moved.Header().Get("Location") != "/admin" {
+		t.Fatalf("admin.html = %d %q", moved.Code, moved.Header().Get("Location"))
+	}
+	if res := requestStatic(t, server, http.MethodGet, "/administrator"); res.Code != http.StatusNotFound {
+		t.Fatalf("/administrator = %d", res.Code)
+	}
+	if res := requestStatic(t, server, http.MethodHead, "/admin"); res.Code != http.StatusOK || res.Body.Len() != 0 {
+		t.Fatalf("head /admin = %d body %d", res.Code, res.Body.Len())
+	}
+
+	bare := build(t, false)
+	if res := requestStatic(t, bare, http.MethodGet, "/admin"); res.Code != http.StatusNotFound {
+		t.Fatalf("/admin without admin.html = %d", res.Code)
+	}
+}

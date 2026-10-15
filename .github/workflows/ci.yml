@@ -88,16 +88,38 @@ jobs:
         working-directory: frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version-file: backend/go.mod
+      # Пароль админа на один прогон: случайный, хеш считает наш же engmark hash-password. Секреты GitHub не нужны.
+      - name: Admin password for e2e
+        run: |
+          password="$(openssl rand -hex 16)"
+          echo "::add-mask::$password"
+          hash="$(printf '%s\n' "$password" | go run -C backend ./cmd/engmark hash-password)"
+          {
+            echo "E2E_ADMIN_PASSWORD=$password"
+            echo "ADMIN_PASSWORD_HASH=$hash"
+          } >> "$GITHUB_ENV"
       - run: docker compose -f docker-compose.yaml -p engmark-prod --profile host up -d --build --wait
         env:
           POSTGRES_USER: engmark
           POSTGRES_PASSWORD: changeme
           POSTGRES_DB: engmark
           ENGMARK_SITE: ":80"
+          # сайт в CI по http: cookie без Secure, иначе браузер её не сохранит
+          ADMIN_COOKIE_SECURE: "false"
       - run: npx playwright test
         working-directory: frontend
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1
+      - if: failure()
+        run: docker compose -f docker-compose.yaml -p engmark-prod --profile host logs --tail 200 app
+        env:
+          POSTGRES_USER: engmark
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: engmark
+          ENGMARK_SITE: ":80"
       - if: always()
         run: docker compose -f docker-compose.yaml -p engmark-prod --profile host down --remove-orphans
         env:

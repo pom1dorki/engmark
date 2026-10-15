@@ -1,0 +1,629 @@
+[
+ {
+  "name": "valid card",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "valid without example",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "apostrophe, hyphen and spaces are fine",
+  "card": {
+   "word": "rock-n-roll don't",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "empty word",
+  "card": {
+   "word": "",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "required"
+   }
+  ]
+ },
+ {
+  "name": "cyrillic word",
+  "card": {
+   "word": "слово",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "digit in word",
+  "card": {
+   "word": "b2b",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "double space",
+  "card": {
+   "word": "a  b",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "leading hyphen",
+  "card": {
+   "word": "-ing",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "hyphen after a space",
+  "card": {
+   "word": "well -known",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "apostrophe only",
+  "card": {
+   "word": "'",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "trailing space",
+  "card": {
+   "word": "word ",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "80-letter word",
+  "card": {
+   "word": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "81-letter word",
+  "card": {
+   "word": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "invalid chars win over length",
+  "card": {
+   "word": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "invalid_chars"
+   }
+  ]
+ },
+ {
+  "name": "empty translation",
+  "card": {
+   "word": "persist",
+   "translation": "",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "translation",
+    "code": "required"
+   }
+  ]
+ },
+ {
+  "name": "300-character translation",
+  "card": {
+   "word": "persist",
+   "translation": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "301-character translation",
+  "card": {
+   "word": "persist",
+   "translation": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "translation",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "empty pos",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "pos",
+    "code": "required"
+   }
+  ]
+ },
+ {
+  "name": "unknown pos",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "adjective",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "pos",
+    "code": "unsupported_pos"
+   }
+  ]
+ },
+ {
+  "name": "every pos is allowed: adv",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "adv",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "400-character example",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "401-character example",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "exampleHighlight": "",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "example",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "500-character grammar",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "501-character grammar",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "grammar",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "501-character ipa",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "ipa",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "501-character usage",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "яяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяяя",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "persist",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "usage",
+    "code": "too_long"
+   }
+  ]
+ },
+ {
+  "name": "highlight outside example",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "missing",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "exampleHighlight",
+    "code": "highlight_not_found"
+   }
+  ]
+ },
+ {
+  "name": "highlight ignores case",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "PERSIST",
+   "exampleTranslation": ""
+  },
+  "errors": []
+ },
+ {
+  "name": "highlight without example",
+  "card": {
+   "word": "persist",
+   "translation": "упорствовать",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "verb",
+   "grammar": "",
+   "usage": "",
+   "example": "",
+   "exampleHighlight": "word",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "exampleHighlight",
+    "code": "highlight_not_found"
+   }
+  ]
+ },
+ {
+  "name": "several errors keep field order",
+  "card": {
+   "word": "",
+   "translation": "",
+   "ipa": "",
+   "pronunciation": "",
+   "stressNote": "",
+   "pos": "x",
+   "grammar": "",
+   "usage": "",
+   "example": "If you persist, you will win.",
+   "exampleHighlight": "zzz",
+   "exampleTranslation": ""
+  },
+  "errors": [
+   {
+    "field": "word",
+    "code": "required"
+   },
+   {
+    "field": "translation",
+    "code": "required"
+   },
+   {
+    "field": "pos",
+    "code": "unsupported_pos"
+   },
+   {
+    "field": "exampleHighlight",
+    "code": "highlight_not_found"
+   }
+  ]
+ }
+]

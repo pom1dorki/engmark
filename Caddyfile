@@ -11,6 +11,15 @@
 		-Server
 	}
 
+	# Админку не индексируем: ни страницу, ни API.
+	@admin path /admin /admin/* /api/v1/admin/*
+	header @admin X-Robots-Tag "noindex, nofollow"
+
+	# Необязательный второй рубеж перед входом по паролю: раскомментируйте и подставьте хеш из `caddy hash-password`.
+	# basic_auth @admin {
+	# 	admin <хеш>
+	# }
+
 	log {
 		output stdout
 		format json

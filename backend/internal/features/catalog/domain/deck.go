@@ -12,5 +12,13 @@ type Deck struct {
 	Slug      string
 	Title     string
 	Kind      string
+	Revision  int64
 	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type DeckSummary struct {
+	Deck
+	ActiveCards   int
+	ArchivedCards int
 }
