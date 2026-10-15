@@ -5,7 +5,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM golang:1.27.1-alpine AS api
+FROM golang:1.27.2-alpine AS api
 WORKDIR /src/backend
 ARG VERSION=dev
 COPY backend/go.mod backend/go.sum ./
