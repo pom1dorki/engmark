@@ -1,10 +1,14 @@
 package cardsfile
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	catalog_domain "github.com/pom1dorki/engmark/internal/features/catalog/domain"
 )
 
 func TestExampleCards(t *testing.T) {
@@ -54,5 +58,23 @@ func exampleCardsPath(t *testing.T) string {
 			t.Fatal("data/cards.json not found")
 		}
 		dir = parent
+	}
+}
+
+func TestEncodeMatchesRepositoryFile(t *testing.T) {
+	raw, err := os.ReadFile(exampleCardsPath(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cards []catalog_domain.CardData
+	if err := json.Unmarshal(raw, &cards); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Encode(&out, cards); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(out.Bytes(), raw) {
+		t.Fatal("Encode must reproduce data/cards.json byte for byte, otherwise `make export` makes noisy diffs")
 	}
 }

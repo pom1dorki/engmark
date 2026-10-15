@@ -11,6 +11,19 @@ const preloadFonts = [
   'fraunces-latin-opsz-normal',
 ]
 
+function adminDevPage(): Plugin {
+  return {
+    name: 'engmark-admin-dev-page',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const url = req.url ?? ''
+        if (/^\/admin(?:[/?#]|$)/.test(url)) req.url = '/admin.html'
+        next()
+      })
+    },
+  }
+}
+
 function engmarkBuild(): Plugin {
   return {
     name: 'engmark-build',
@@ -18,6 +31,7 @@ function engmarkBuild(): Plugin {
       order: 'post',
       handler(html, ctx) {
         if (!ctx.bundle) return html
+        if (basename(ctx.filename) !== 'index.html') return html
         const hrefs: string[] = []
         for (const item of Object.values(ctx.bundle)) {
           if (item.type !== 'asset' || !item.fileName.endsWith('.woff2')) continue
@@ -79,12 +93,19 @@ export default defineConfig(({ mode }) => {
       : `http://${addr}`
 
   return {
-    plugins: [react(), engmarkBuild()],
+    plugins: [react(), adminDevPage(), engmarkBuild()],
     build: {
       target: 'es2022',
       cssCodeSplit: true,
       assetsInlineLimit: 0,
       modulePreload: { polyfill: true },
+      manifest: true,
+      rollupOptions: {
+        input: {
+          main: resolve('index.html'),
+          admin: resolve('admin.html'),
+        },
+      },
     },
     server: {
       proxy: {

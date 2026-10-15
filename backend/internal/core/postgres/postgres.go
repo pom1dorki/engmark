@@ -23,6 +23,7 @@ type DB interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
 	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
 }
 
@@ -136,9 +137,43 @@ func Migrate(databaseURL string) error {
 	defer m.Close()
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		if errors.Is(err, os.ErrNotExist) || strings.Contains(err.Error(), "no migration found") {
-			return redact(fmt.Errorf("migrate up: database schema is from another build, recreate the database (see README): %w", err), databaseURL, pgxURL)
+			return redact(fmt.Errorf("migrate up: %w: %w", ErrSchemaFromAnotherBuild, err), databaseURL, pgxURL)
 		}
 		return redact(fmt.Errorf("migrate up: %w", err), databaseURL, pgxURL)
+	}
+	if err := checkSchema(context.Background(), databaseURL); err != nil {
+		return redact(err, databaseURL, pgxURL)
+	}
+	return nil
+}
+
+var ErrSchemaFromAnotherBuild = errors.New("database schema is from another build, recreate the database (see README)")
+
+const schemaShapeSQL = `
+SELECT to_regclass('deck_revisions') IS NOT NULL
+   AND to_regclass('card_versions') IS NOT NULL
+   AND to_regclass('admin_sessions') IS NOT NULL
+   AND to_regclass('catalog_meta') IS NULL
+   AND EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = current_schema() AND table_name = 'decks' AND column_name = 'revision')
+   AND EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = current_schema() AND table_name = 'cards' AND column_name = 'archived_at')`
+
+func checkSchema(ctx context.Context, databaseURL string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	conn, err := pgx.Connect(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("schema check connect: %w", err)
+	}
+	defer func() { _ = conn.Close(context.Background()) }()
+
+	var ok bool
+	if err := conn.QueryRow(ctx, schemaShapeSQL).Scan(&ok); err != nil {
+		return fmt.Errorf("schema check: %w", err)
+	}
+	if !ok {
+		return fmt.Errorf("migrate up: %w", ErrSchemaFromAnotherBuild)
 	}
 	return nil
 }

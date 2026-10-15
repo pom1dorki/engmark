@@ -218,9 +218,10 @@ func TestGetCard(t *testing.T) {
 	err := pool.QueryRow(context.Background(), `
 		INSERT INTO cards (
 			deck_id, word, translation, ipa, pronunciation, stress_note,
-			pos, grammar, usage, example, example_highlight, example_translation
+			pos, grammar, usage, example, example_highlight, example_translation,
+			created_revision, updated_revision
 		)
-		SELECT id, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+		SELECT id, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0
 		FROM decks WHERE slug = 'default'
 		RETURNING id
 	`,
@@ -301,8 +302,8 @@ func TestSnapshotMatchesDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO cards (deck_id, word, translation, pos, example, example_highlight)
-		SELECT id, 'alpha', 'альфа', 'noun', 'Alpha.', 'Alpha' FROM decks WHERE slug = 'default'
+		INSERT INTO cards (deck_id, word, translation, pos, example, example_highlight, created_revision, updated_revision)
+		SELECT id, 'alpha', 'альфа', 'noun', 'Alpha.', 'Alpha', 0, 0 FROM decks WHERE slug = 'default'
 	`); err != nil {
 		t.Fatal(err)
 	}

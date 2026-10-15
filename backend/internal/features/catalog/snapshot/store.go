@@ -3,7 +3,9 @@ package catalog_snapshot
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	core_errors "github.com/pom1dorki/engmark/internal/core/errors"
 	core_http_response "github.com/pom1dorki/engmark/internal/core/transport/http/response"
@@ -18,12 +20,13 @@ type Loader interface {
 }
 
 type Page struct {
-	Items  []catalog_domain.Card
-	Total  int
-	Limit  int
-	Offset int
-	Body   []byte
-	ETag   string
+	Items    []catalog_domain.Card
+	Total    int
+	Limit    int
+	Offset   int
+	Body     []byte
+	ETag     string
+	Revision int64
 }
 
 type DeckCards struct {
@@ -37,10 +40,25 @@ type Snapshot struct {
 	byDeck    map[int64]*DeckCards
 	byID      map[int64]catalog_domain.Card
 	defaultID int64
+	revision  int64
 }
+
+func (s *Snapshot) Revision() int64 { return s.revision }
+
+type flight struct {
+	done    chan struct{}
+	err     error
+	waiters int
+}
+
+const rebuildTimeout = 30 * time.Second
 
 type Store struct {
 	cur atomic.Pointer[Snapshot]
+
+	mu      sync.Mutex
+	running bool
+	queued  *flight
 }
 
 func New() *Store {
@@ -51,7 +69,70 @@ func (s *Store) Load() *Snapshot {
 	return s.cur.Load()
 }
 
+func (s *Store) Revision() int64 {
+	if snap := s.cur.Load(); snap != nil {
+		return snap.revision
+	}
+	return 0
+}
+
 func (s *Store) Reload(ctx context.Context, repo Loader, marshal MarshalList) error {
+	if marshal == nil {
+		return fmt.Errorf("catalog marshal is nil")
+	}
+	s.mu.Lock()
+	if !s.running {
+		s.running = true
+		s.mu.Unlock()
+
+		err := s.build(ctx, repo, marshal)
+
+		s.mu.Lock()
+		if s.queued == nil {
+			s.running = false
+			s.mu.Unlock()
+			return err
+		}
+		s.mu.Unlock()
+		go s.drain(repo, marshal)
+		return err
+	}
+	f := s.queued
+	if f == nil {
+		f = &flight{done: make(chan struct{})}
+		s.queued = f
+	}
+	f.waiters++
+	s.mu.Unlock()
+
+	select {
+	case <-f.done:
+		return f.err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *Store) drain(repo Loader, marshal MarshalList) {
+	for {
+		s.mu.Lock()
+		f := s.queued
+		s.queued = nil
+		if f == nil {
+			s.running = false
+			s.mu.Unlock()
+			return
+		}
+		s.mu.Unlock()
+
+		ctx, cancel := context.WithTimeout(context.Background(), rebuildTimeout)
+		f.err = s.build(ctx, repo, marshal)
+		cancel()
+		close(f.done)
+	}
+}
+
+func (s *Store) build(ctx context.Context, repo Loader, marshal MarshalList) error {
 	if marshal == nil {
 		return fmt.Errorf("catalog marshal is nil")
 	}
@@ -67,6 +148,7 @@ func (s *Store) Reload(ctx context.Context, repo Loader, marshal MarshalList) er
 	for _, deck := range decks {
 		if deck.Slug == "default" {
 			snap.defaultID = deck.ID
+			snap.revision = deck.Revision
 		}
 		cards, err := repo.ListAllCards(ctx, deck.ID)
 		if err != nil {
@@ -89,8 +171,20 @@ func (s *Store) Reload(ctx context.Context, repo Loader, marshal MarshalList) er
 	if snap.defaultID == 0 {
 		return fmt.Errorf("default deck: %w", core_errors.ErrNotFound)
 	}
-	s.cur.Store(snap)
+	s.publish(snap)
 	return nil
+}
+
+func (s *Store) publish(snap *Snapshot) {
+	for {
+		cur := s.cur.Load()
+		if cur != nil && cur.revision > snap.revision {
+			return
+		}
+		if s.cur.CompareAndSwap(cur, snap) {
+			return
+		}
+	}
 }
 
 func (s *Store) ListCards(ctx context.Context, limit, offset *int) (Page, error) {
@@ -123,12 +217,13 @@ func (s *Store) list(ctx context.Context, deckID int64, defaultDeck bool, limit,
 	total := len(view.items)
 	if off == 0 && lim >= total && lim == catalog_domain.MaxLimit && view.full != nil {
 		return Page{
-			Items:  view.items,
-			Total:  total,
-			Limit:  lim,
-			Offset: off,
-			Body:   view.full,
-			ETag:   view.fullETag,
+			Items:    view.items,
+			Total:    total,
+			Limit:    lim,
+			Offset:   off,
+			Body:     view.full,
+			ETag:     view.fullETag,
+			Revision: snap.revision,
 		}, nil
 	}
 	start := off
@@ -143,7 +238,7 @@ func (s *Store) list(ctx context.Context, deckID int64, defaultDeck bool, limit,
 	if items == nil {
 		items = []catalog_domain.Card{}
 	}
-	return Page{Items: items, Total: total, Limit: lim, Offset: off}, nil
+	return Page{Items: items, Total: total, Limit: lim, Offset: off, Revision: snap.revision}, nil
 }
 
 func (s *Store) GetCard(ctx context.Context, id int64) (catalog_domain.Card, error) {

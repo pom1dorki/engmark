@@ -16,3 +16,12 @@ type Route struct {
 func (r *Route) WithMiddleware() http.Handler {
 	return core_http_middleware.ChainMiddleware(r.Handler, r.Middleware...)
 }
+
+func WithMiddleware(routes []Route, mw ...core_http_middleware.Middleware) []Route {
+	out := make([]Route, len(routes))
+	for i, route := range routes {
+		route.Middleware = append(append([]core_http_middleware.Middleware{}, mw...), route.Middleware...)
+		out[i] = route
+	}
+	return out
+}

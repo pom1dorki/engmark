@@ -21,6 +21,10 @@ func runCommand(args []string) int {
 			return 1
 		}
 		return 0
+	case "export":
+		return runExport(args[1:], os.Stdout, os.Stderr)
+	case "hash-password":
+		return runHashPassword(args[1:], os.Stdin, os.Stdout, os.Stderr)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", args[0])
 		return 2

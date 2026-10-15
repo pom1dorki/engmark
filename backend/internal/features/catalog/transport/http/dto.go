@@ -3,6 +3,7 @@ package catalog_transport_http
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	core_http_response "github.com/pom1dorki/engmark/internal/core/transport/http/response"
@@ -85,6 +86,7 @@ func MarshalCardList(items []catalog_domain.Card, total, limit, offset int) ([]b
 }
 
 func writeCardPage(resp *core_http_response.HTTPResponseHandler, r *http.Request, page catalog_snapshot.Page) {
+	resp.Header().Set("X-Deck-Revision", strconv.FormatInt(page.Revision, 10))
 	if page.Body != nil {
 		resp.CachedBytes(r, page.Body, page.ETag)
 		return

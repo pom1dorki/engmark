@@ -1,3 +1,5 @@
-DROP TABLE IF EXISTS catalog_meta;
+DROP TABLE IF EXISTS admin_sessions;
+DROP TABLE IF EXISTS card_versions;
 DROP TABLE IF EXISTS cards;
+DROP TABLE IF EXISTS deck_revisions;
 DROP TABLE IF EXISTS decks;
